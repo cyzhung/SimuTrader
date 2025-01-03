@@ -1,0 +1,20 @@
+
+#Node.js dependencies
+node_modules/
+npm-debug.log
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# Docker
+*.env
+.dockerignore
+
+# Build files
+dist/
+build/
+
