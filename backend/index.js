@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const apiRoutes = require('./routes/api');  // 引入路由
 
+app.use(express.json());
 // 設置根路徑的處理器（可選）
 app.get('/', (req, res) => {
   res.send('Welcome to the Stock Tracker API!');
