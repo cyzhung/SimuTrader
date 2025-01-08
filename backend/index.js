@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const apiRoutes = require('./routes/api');  // 引入路由
+const apiRoutes = require('./routes/usersApi');  // 引入路由
 
 app.use(express.json());
 // 設置根路徑的處理器（可選）

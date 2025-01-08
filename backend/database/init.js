@@ -44,7 +44,21 @@ const initDatabase = async () => {
       );
     `);
     console.log('User stocks table created.');
-
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS stock_prices (
+        price_id SERIAL PRIMARY KEY,
+        stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE, -- 外鍵，連結到 stocks 表
+        price_date DATE NOT NULL,                -- 價格的日期
+        open_price NUMERIC(10, 2),               -- 開盤價
+        close_price NUMERIC(10, 2),              -- 收盤價
+        high_price NUMERIC(10, 2),               -- 最高價
+        low_price NUMERIC(10, 2),                -- 最低價
+        volume BIGINT,                           -- 交易量
+        UNIQUE(stock_id, price_date)             -- 防止同一日期重複插入
+      );`
+    );
+    
     console.log('Database initialized successfully!');
   } catch (err) {
     console.error('Error initializing database:', err);
