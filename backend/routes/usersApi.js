@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../database/connection');
 const bcrypt = require('bcrypt');
 const salt = 99
-// 根目錄
+// 創建帳號API
 router.post('/create_user', async (req, res) => {
   const { email, password } = req.body;
 
@@ -30,6 +30,7 @@ router.post('/create_user', async (req, res) => {
   }
 });
 
+//登入請求API
 router.post('/login', async (req, res) => {
   const {email, password} = req.body;
 
@@ -51,6 +52,8 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 })
+
+
 // 範例 API：取得所有用戶
 router.get('/users', async (req, res) => {
   try {

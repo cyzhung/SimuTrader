@@ -18,3 +18,5 @@ logs/
 dist/
 build/
 
+simutrader_database_backup.sql
+
