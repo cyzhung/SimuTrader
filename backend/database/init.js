@@ -18,8 +18,8 @@ const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
+      );`
+    );
     console.log('Users table created.');
 
     await pool.query(`
@@ -27,10 +27,9 @@ const initDatabase = async () => {
         stock_id SERIAL PRIMARY KEY,
         stock_symbol VARCHAR(10) UNIQUE NOT NULL,
         stock_name VARCHAR(255) NOT NULL,
-        price NUMERIC(10, 2) NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
+        market_type VARCHAR(2) NOT NULL
+      );`
+    );
     console.log('Stocks table created.');
 
     await pool.query(`
