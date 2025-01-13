@@ -4,7 +4,7 @@ const pool = require('../database/connection');
 const bcrypt = require('bcrypt');
 const salt = 99
 // 創建帳號API
-router.post('/create_user', async (req, res) => {
+router.post('/register', async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
 
 
 // 範例 API：取得所有用戶
-router.get('/users', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users');
     res.json(result.rows);
