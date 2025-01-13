@@ -1,3 +1,4 @@
+
 const pool = require('./connection'); // 引入資料庫連線
 
 const initDatabase = async () => {
@@ -27,7 +28,9 @@ const initDatabase = async () => {
         stock_id SERIAL PRIMARY KEY,
         stock_symbol VARCHAR(10) UNIQUE NOT NULL,
         stock_name VARCHAR(255) NOT NULL,
-        market_type VARCHAR(2) NOT NULL
+        price FLOAT NOT NULL,
+        market_type VARCHAR(2) NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW()
       );`
     );
     console.log('Stocks table created.');
