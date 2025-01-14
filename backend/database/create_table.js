@@ -28,7 +28,7 @@ const initDatabase = async () => {
         stock_id SERIAL PRIMARY KEY,
         stock_symbol VARCHAR(10) UNIQUE NOT NULL,
         stock_name VARCHAR(255) NOT NULL,
-        price FLOAT NOT NULL,
+        price NUMERIC(10,2) NOT NULL,
         market_type VARCHAR(2) NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW()
       );`
@@ -42,7 +42,6 @@ const initDatabase = async () => {
         stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE,
         quantity INT NOT NULL,
         purchase_price NUMERIC(10, 2) NOT NULL,
-        transaction_date TIMESTAMP DEFAULT NOW()
       );
     `);
     console.log('User stocks table created.');
@@ -51,7 +50,7 @@ const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS stock_prices (
         price_id SERIAL PRIMARY KEY,
         stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE, -- 外鍵，連結到 stocks 表
-        price_date DATE NOT NULL,                -- 價格的日期
+        price_date TIMESTAMP NOT NULL,           -- 價格的日期
         open_price NUMERIC(10, 2),               -- 開盤價
         close_price NUMERIC(10, 2),              -- 收盤價
         high_price NUMERIC(10, 2),               -- 最高價
@@ -60,7 +59,22 @@ const initDatabase = async () => {
         UNIQUE(stock_id, price_date)             -- 防止同一日期重複插入
       );`
     );
-    
+    console.log('stock_prices table created.');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        transaction_id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(user_id) ON DELETE CASCADE,    -- 外鍵，連結到 users 表
+        stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE, -- 外鍵，連結到 stocks 表
+        transaction_date TIMESTAMP DEFAULT NOW(),                   -- 交易日期
+        transaction_type VARCHAR(10) NOT NULL,                      -- 交易類型(買入/賣出)
+        price NUMERIC(10, 2) NOT NULL CHECK(price > 0),             -- 交易價格
+        quantity INT NOT NULL CHECK (quantity > 0),                 -- 交易數量
+      );`
+    );
+    console.log('stock_prices table created.');
+
+
     console.log('Database initialized successfully!');
   } catch (err) {
     console.error('Error initializing database:', err);
