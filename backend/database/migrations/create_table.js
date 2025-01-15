@@ -1,5 +1,5 @@
 
-const pool = require('./connection'); // 引入資料庫連線
+const pool = require('../connection'); // 引入資料庫連線
 
 const initDatabase = async () => {
   console.log('Testing database connection...');

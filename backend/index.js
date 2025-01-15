@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
-const usersRoutes = require('./routes/usersAPI');  // 引入路由
-const stocksRoutes = require('./routes/stocksAPI');
-const userSrocksRoutes = require('./routes/userStocksAPI');
+const usersRoutes = require('./database/routes/users');  // 引入路由
+const stocksRoutes = require('./database/routes/stocks');
+const userSrocksRoutes = require('./database/routes/transactions');
 
 
 app.use(express.json());

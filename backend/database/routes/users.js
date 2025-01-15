@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../database/connection');
+const pool = require('../connection');
 const bcrypt = require('bcrypt');
 const salt = 99
 // 創建帳號API
@@ -16,8 +16,8 @@ router.post('/register', async (req, res) => {
     if(existingUser.rows.length > 0)
         return res.status(409).json({ error:'user already exists'});
 
-    const hashed_password = bcrypt.hash(password, salt);
-
+    const hashed_password = bcrypt.hashSync(password, salt);
+    console.log(hashed_password)
     const result = await pool.query(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING user_id',
       [email, hashed_password]

@@ -3,9 +3,11 @@ import psycopg2
 import yfinance as yf
 
 from tqdm import tqdm
-from utils import get_Listed_Company, get_stocks_info, get_stocks_id_map, isListedCompany
-from utils import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 from psycopg2.extras import execute_values
+
+from backend.database.utils.DatabaseUtils import get_Listed_Company, get_stocks_info, get_stocks_id_map, isListedCompany
+from backend.database.utils.DatabaseUtils import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+
 
 def fetch_stocks_data(stock_symbol, period):
     if (isListedCompany(stock_symbol)):

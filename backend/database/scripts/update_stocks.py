@@ -4,8 +4,8 @@ import json;
 
 from datetime import datetime;
 
-from utils import get_stocks_info
-from utils import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from backend.database.utils.DatabaseUtils import get_stocks_info
+from backend.database.utils.DatabaseUtils import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 
 
 
