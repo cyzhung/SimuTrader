@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../database/connection');
+const pool = require('../connection');
 const { exec } = require('child_process');
-const dotenv = require('dotenv');
 
-dotenv.config();
 
 router.get('/', async (req, res)=>{
     console.log('stocks api');
@@ -28,9 +26,10 @@ router.get('/search', async (req, res) => {
 });
 
 router.post('/update', async (req, res) =>{
-    const pythonPath = process.env.PYTHONPATH;
+    const pythonPath = process.env.PYTHONBINPATH;
     const scriptPath = process.env.UPDATE_SCRIPT_PATH;
-    exec(`${pythonPath} ${scriptPath}`, (error, stdout, stderr) => {
+
+    exec(`${pythonPath}  ${scriptPath}`, (error, stdout, stderr) => {
         if (error) {
           console.error(`執行錯誤: ${error.message}`);
           return res.status(500).json({ error: `執行錯誤: ${error.message}` });

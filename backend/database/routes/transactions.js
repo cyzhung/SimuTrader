@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../database/connection');
+const pool = require('../connection');
 
 
 router.post('/buy', async (req, res) => {
