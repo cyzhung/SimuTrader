@@ -41,7 +41,7 @@ const initDatabase = async () => {
         user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
         stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE,
         quantity INT NOT NULL,
-        purchase_price NUMERIC(10, 2) NOT NULL,
+        purchase_price NUMERIC(10, 2) NOT NULL
       );
     `);
     console.log('User stocks table created.');
@@ -69,11 +69,24 @@ const initDatabase = async () => {
         transaction_date TIMESTAMP DEFAULT NOW(),                   -- 交易日期
         transaction_type VARCHAR(10) NOT NULL,                      -- 交易類型(買入/賣出)
         price NUMERIC(10, 2) NOT NULL CHECK(price > 0),             -- 交易價格
-        quantity INT NOT NULL CHECK (quantity > 0),                 -- 交易數量
+        quantity INT NOT NULL CHECK (quantity > 0)                  -- 交易數量
       );`
     );
     console.log('stock_prices table created.');
 
+    await pool.query(`
+      CREATE TABLE orders (
+        order_id SERIAL PRIMARY KEY,              -- 訂單唯一ID
+        user_id INT REFERENCES users(user_id),    -- 下單用戶
+        stock_id INT REFERENCES stocks(stock_id), -- 股票ID
+        order_type VARCHAR(10) NOT NULL,          -- 訂單類型（'buy' 或 'sell'）
+        price NUMERIC(10, 2) NOT NULL,            -- 訂單價格（限價單需要）
+        quantity INT NOT NULL,                    -- 訂單數量
+        remaining_quantity INT NOT NULL,          -- 剩餘未成交數量
+        created_at TIMESTAMP DEFAULT NOW(),       -- 訂單創建時間
+        status VARCHAR(10) DEFAULT 'pending'      -- 訂單狀態（'pending', 'partial', 'completed', 'cancelled'）
+    );`)
+    console.log('orders table created.');
 
     console.log('Database initialized successfully!');
   } catch (err) {

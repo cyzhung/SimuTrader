@@ -21,7 +21,7 @@ DB_PORT = os.getenv("DB_PORT")
 # 從環境變亮中讀取需要的路徑及URL
 STOCK_INFO_URL = os.getenv("STOCK_INFO_URL")
 TWSE_LISTED_URL = os.getenv("TWSE_LISTED_URL")
-STOCKS_ID_MAP_FILEPATH = os.getenv("STOCKS_ID_MAP_FILEPATH")
+
 
 
 
@@ -53,11 +53,8 @@ def get_Listed_Company():
     
     return listed_company  # 非上市公司
 
-def get_stocks_id_map():
-    return json.loads(STOCKS_ID_MAP_FILEPATH)
 
-def isListedCompany(stock_symbol):
-    listed_company = get_Listed_Company()
+def isListedCompany(stock_symbol, listed_company):
     if stock_symbol in listed_company:
         return True
     else:
