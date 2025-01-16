@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../connection');
 const { exec } = require('child_process');
-
+const DatabaseUtils = require('../utils/DatabaseUtils');
 
 router.get('/', async (req, res)=>{
     console.log('stocks api');
