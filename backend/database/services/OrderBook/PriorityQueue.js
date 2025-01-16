@@ -20,8 +20,10 @@ class PriorityQueue {
         this._swap(0,this.getSize()-1);
         this.heap[0] = this.heap.pop();
         this._heapifyDown();
+    }
 
-        return top;
+    getTop(){
+        return this.heap[0];
     }
 
     getSize(){
