@@ -7,22 +7,41 @@ class PriorityQueue {
     }
 
     enqueue(order){
-        this.heap.push(order);
-        this._heapifyUp();
+        if (!order) {
+            throw new Error('訂單不能為空');
+        }
+        
+        try {
+            this.heap.push(order);
+            this._heapifyUp();
+        } catch (error) {
+            throw new Error(`入隊失敗: ${error.message}`);
+        }
     }
 
     dequeue(){
-        const size = this.getSize()
-        if(size===0)  return null;
-        if(size===1)  return this.heap.pop();
+        if (this.getSize() === 0) {
+            throw new Error('隊列為空');
+        }
 
-        const top = this.heap[0];
-        this._swap(0,this.getSize()-1);
-        this.heap[0] = this.heap.pop();
-        this._heapifyDown();
+        try {
+            const size = this.getSize();
+            if (size === 1) return this.heap.pop();
+
+            const top = this.heap[0];
+            this._swap(0, this.getSize() - 1);
+            this.heap.pop();
+            this._heapifyDown();
+            return top;
+        } catch (error) {
+            throw new Error(`出隊失敗: ${error.message}`);
+        }
     }
 
     getTop(){
+        if (this.getSize() === 0) {
+            throw new Error('隊列為空');
+        }
         return this.heap[0];
     }
 
@@ -36,8 +55,8 @@ class PriorityQueue {
         while( index > 0){
             const parentIndex = (index-1) / 2;
             if(this.comparator(this.heap[index], this.heap[parentIndex] >= 0))  break;
-            this._swap(index, parentIndex)
-            index = parentIndex
+            this._swap(index, parentIndex);
+            index = parentIndex;
         }
 
     }
