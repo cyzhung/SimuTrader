@@ -20,7 +20,6 @@ export function validateOrder(order: Order): OrderValidationError[] {
   const errors: OrderValidationError[] = [];
 
   // 必填字段檢查
-  if (!order.order_id) errors.push({ field: 'orderId', message: '訂單ID不能為空' });
   if (!order.user_id) errors.push({ field: 'userId', message: '用戶ID不能為空' });
   if (!order.stock_symbol) errors.push({ field: 'symbol', message: '交易對不能為空' });
   

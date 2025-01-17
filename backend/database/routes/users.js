@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../connection');
 const bcrypt = require('bcrypt');
 const salt = 99
+const UserRepository = require('../repository/UserRepository');
 // 創建帳號API
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -12,18 +12,17 @@ router.post('/register', async (req, res) => {
   }
 
   try{
-    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if(existingUser.rows.length > 0)
+    //檢查用戶是否存在
+    if(await UserRepository.userExist(email))
         return res.status(409).json({ error:'user already exists'});
 
+    //將密碼加密
     const hashed_password = bcrypt.hashSync(password, salt);
-    console.log(hashed_password)
-    const result = await pool.query(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING user_id',
-      [email, hashed_password]
-    );
 
+    //將用戶資料加入資料庫
+    const result = await UserRepository.addUser({email, password_hash: hashed_password});
     res.status(201).json({ message: 'User created successfully', user_id: result.rows[0].user_id});
+
   } catch(err) {
     console.error('Error creating user:', err);
     res.status(500).json({ error: 'Internal Server Error'});
@@ -33,9 +32,15 @@ router.post('/register', async (req, res) => {
 //登入請求API
 router.post('/login', async (req, res) => {
   const {email, password} = req.body;
+  if(!email || !password)
+    return res.status(400).json({ message: 'Email and password are required' });
 
   try{
-    const accountInfo = await pool.query('SELECT email, password_hash FROM users WHERE email = $1', [email]);
+    //檢查用戶是否存在
+    if(!await UserRepository.userExist(email))
+      return res.status(401).json({ message: 'Invalid username or password' });
+
+    const accountInfo = await UserRepository.getUserByEmail(email);
     
     if(accountInfo.rows.length === 0)
         return res.status(401).json({ message: 'Invalid username or password' });
