@@ -6,7 +6,6 @@ class DatabaseOrderBook extends OrderBook_abs{
         this.buyOrderList = []
     }
     addOrder(order){
-        super().addOrder(order)
         
         if(this.matchOrder(order))
             return;
@@ -20,5 +19,4 @@ class DatabaseOrderBook extends OrderBook_abs{
         if(result.rows.length==0)
             return false;
     }
-    
 }

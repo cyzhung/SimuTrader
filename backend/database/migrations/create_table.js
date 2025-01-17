@@ -1,5 +1,5 @@
 
-const pool = require('../connection'); // 引入資料庫連線
+const pool = require('../utils/DatabaseConnection'); // 引入資料庫連線
 
 const initDatabase = async () => {
   console.log('Testing database connection...');
@@ -41,7 +41,8 @@ const initDatabase = async () => {
         user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
         stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE,
         quantity INT NOT NULL,
-        purchase_price NUMERIC(10, 2) NOT NULL
+        purchase_price NUMERIC(10, 2) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
       );
     `);
     console.log('User stocks table created.');
@@ -79,7 +80,8 @@ const initDatabase = async () => {
         order_id SERIAL PRIMARY KEY,              -- 訂單唯一ID
         user_id INT REFERENCES users(user_id),    -- 下單用戶
         stock_id INT REFERENCES stocks(stock_id), -- 股票ID
-        order_type VARCHAR(10) NOT NULL,          -- 訂單類型（'buy' 或 'sell'）
+        order_type VARCHAR(10) NOT NULL,          -- 訂單類型（'Buy' 或 'Sell'）
+        order_side VARCHAR(10) NOT NULL,          -- 訂單方向（'Limit' 或 'Marget'）
         price NUMERIC(10, 2) NOT NULL,            -- 訂單價格（限價單需要）
         quantity INT NOT NULL,                    -- 訂單數量
         remaining_quantity INT NOT NULL,          -- 剩餘未成交數量

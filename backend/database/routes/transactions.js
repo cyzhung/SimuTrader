@@ -1,42 +1,33 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../connection');
-
-
+const stockRepository = require('../repository/StockRepository');
+const userStocksRepository = require('../repository/UserStocksRepository');
+const transactionsRepository = require('../repository/TransactionsRepository');
+const Order = require('../services/OrderBook/Order');
 router.post('/buy', async (req, res) => {
     const { user_id, stock_symbol, quantity, price } = req.body;
     const transaction_date = req.body.transaction_date || new Date(); // 預設當前時間
+    const orderbook = req.app.locals.orderbook;
 
     try {
         // 檢查用戶是否存在
-        const checkUserSQL = `SELECT * FROM users WHERE user_id = $1`;
-        const existingUser = await pool.query(checkUserSQL, [user_id]);
-        if (existingUser.rows.length === 0)
+        if(!await UserRepository.userExist(user_id))
             return res.status(404).json({ message: `User ${user_id} doesn't exist` });
 
         // 檢查股票是否存在
-        const getIDSQL = `SELECT stock_id FROM stocks WHERE stock_symbol = $1`;
-        const existingStock = await pool.query(getIDSQL, [stock_symbol]);
-        if (existingStock.rows.length === 0)
+        if(!await StockRepository.stockExist(stock_symbol))
             return res.status(404).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
         const stock_id = existingStock.rows[0]['stock_id'];
 
-        // 更新或新增 user_stocks 中的記錄
-        const userStocksSQL = `
-            INSERT INTO user_stocks (user_id, stock_id, quantity)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, stock_id)
-            DO UPDATE SET quantity = user_stocks.quantity + EXCLUDED.quantity;
-        `;
-        await pool.query(userStocksSQL, [user_id, stock_id, quantity]);
+        const order = Order.createOrder(user_id, stock_id, quantity, price, 'buy');
+        //處理order，包括更新user_stocks和transactions以及match
+        try{
+            await orderbook.processOrder(order);
+        } catch (error){
+            return res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
 
-        // 插入交易紀錄到 transactions 表格
-        const transactionSQL = `
-            INSERT INTO transactions (user_id, stock_id, quantity, price, transaction_date, transaction_type)
-            VALUES ($1, $2, $3, $4, $5, $6);
-        `;
-        await pool.query(transactionSQL, [user_id, stock_id, quantity, price, transaction_date, 'buy']);
 
         // 返回成功訊息
         res.status(201).json({

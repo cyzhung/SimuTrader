@@ -5,21 +5,25 @@ const { validateOrder } = require('./Order');
 
 class PriorityQueueOB extends OrderBook_abs{
     constructor(){
+        super();
         this.buyQueue = priorityQueue(true);
         this.sellQueue = priorityQueue(false);
     }
 
-    async addddOrder(order) {
+    static instance = null;
+
+    static getInstance(){
+        if(!PriorityQueueOB.instance){
+            PriorityQueueOB.instance = new PriorityQueueOB();
+        }
+        return PriorityQueueOB.instance;
+    }
+
+    async addOrder(order) {
         // 訂單驗證
         const errors = validateOrder(order);
         if (errors.length > 0) {
             throw new Error(`訂單驗證失敗: ${JSON.stringify(errors)}`);
-        }
-
-        try {
-            await super.addOrder(order);
-        } catch (error) {
-            throw new Error(`訂單存儲失敗: ${error.message}`);
         }
 
         try {
