@@ -20,10 +20,10 @@ router.post('/register', async (req, res) => {
     const hashed_password = bcrypt.hashSync(password, salt);
 
     //將用戶資料加入資料庫
-    const result = await UserRepository.addUser({email, password_hash: hashed_password});
+    const result = await UserRepository.add({email:eamil , password_hash: hashed_password});
     res.status(201).json({ message: 'User created successfully', user_id: result.rows[0].user_id});
 
-  } catch(err) {
+  }catch(err) {
     console.error('Error creating user:', err);
     res.status(500).json({ error: 'Internal Server Error'});
   }

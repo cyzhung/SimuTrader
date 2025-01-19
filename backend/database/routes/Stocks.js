@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
-
+const StockRepository = require('../repository/StockRepository');
 
 router.get('/', async (req, res)=>{
     console.log('stocks api');
@@ -13,15 +13,9 @@ router.get('/', async (req, res)=>{
 });
 router.get('/search', async (req, res) => {
     const { stock_symbol, stock_name, market_type } = req.body;
-    const query = `
-    SELECT * FROM stocks
-    WHERE 
-      ($1::TEXT IS NULL OR stock_symbol = $1::TEXT) AND
-      ($2::TEXT IS NULL OR stock_name LIKE '%' || $2::TEXT || '%') AND
-      ($3::TEXT IS NULL OR market_type = $3::TEXT);
-    `;
-    const result = await pool.query(query, [stock_symbol, stock_name, market_type]);
-    res.status(200).json({ message: result['rows'] });
+    const result = await StockRepository.get({stock_symbol: stock_symbol, stock_name: stock_name, market_type: market_type});
+
+    res.status(200).json({ message: result });
 });
 
 router.post('/update', async (req, res) =>{

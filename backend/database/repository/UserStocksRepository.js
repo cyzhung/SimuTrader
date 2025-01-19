@@ -1,30 +1,35 @@
-class UserStocksRepository{
-    static async addUserStock(user_id, stock_id, quantity, purchase_price){
+const RepositroyAbstract = require('./RepositoryFactory');
+
+class UserStocksRepository extends RepositroyAbstract{
+    static async insert(user_stock){
         const pool = Database.getPool();
         const query = `INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price) 
-                        VALUES ($1, $2, $3, $4)`;
-        const values = [user_id, stock_id, quantity, purchase_price];
+                        VALUES ($1, $2, $3, $4) RETURNING user_stock_id`;
+        const values = [user_stock.user_id, user_stock.stock_id, user_stock.quantity, user_stock.purchase_price];
+
         try{
-            await pool.query(query, values);
+            const result = await pool.query(query, values);
+            return result.rows[0].user_stock_id;
         }catch(error){
             console.error('Error adding user stock:', error);
             throw error;
         }
     }
 
-    static async getUserStocks(user_id, stock_id = null) {
+    static async get(filters={user_id: null, stock_id: null}) {
+        if(!filters.user_id){
+            throw new Error('User ID is required');
+        }
+
         const pool = Database.getPool();
         let query = `
-            SELECT us.*, s.stock_symbol, s.stock_name 
-            FROM user_stocks us
-            JOIN stocks s ON us.stock_id = s.stock_id
-            WHERE us.user_id = $1
+            SELECT * FROM user_stocks WHERE user_id = $1
         `;
-        const values = [user_id];
+        const values = [filters.user_id];
 
-        if (stock_id) {
-            query += ` AND us.stock_id = $2`;
-            values.push(stock_id);
+        if (filters.stock_id) {
+            query += ` AND stock_id = $2`;
+            values.push(filters.stock_id);
         }
 
         try{
@@ -36,15 +41,12 @@ class UserStocksRepository{
         }
     }
 
-    static async upsertUserStock(user_id, stock_id, quantity, purchase_price){
+    static async update(user_id, data){
         const pool = Database.getPool();
         const query = `
-            INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id, stock_id)
-            DO UPDATE SET quantity = user_stocks.quantity + EXCLUDED.quantity;
+            UPDATE user_stocks SET quantity = $1, purchase_price = $2 WHERE user_id = $3 AND stock_id = $4
         `;
-        const values = [user_id, stock_id, quantity, purchase_price];
+        const values = [user_id, data.stock_id, data.quantity, data.purchase_price];
         try{
             await pool.query(query, values);
         }catch(error){

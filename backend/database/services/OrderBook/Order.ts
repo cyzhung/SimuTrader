@@ -1,4 +1,5 @@
 export interface Order {
+  order_id: string,
   user_id: string;
   stock_symbol: string;
   price: number;
@@ -20,6 +21,7 @@ export function validateOrder(order: Order): OrderValidationError[] {
   const errors: OrderValidationError[] = [];
 
   // 必填字段檢查
+  if (!order.order_id) errors.push({ field: 'order_id', message: '訂單ID不能為空' });
   if (!order.user_id) errors.push({ field: 'userId', message: '用戶ID不能為空' });
   if (!order.stock_symbol) errors.push({ field: 'symbol', message: '交易對不能為空' });
   
@@ -28,19 +30,26 @@ export function validateOrder(order: Order): OrderValidationError[] {
   if (order.quantity <= 0) errors.push({ field: 'quantity', message: '數量必須大於0' });
   
   // 枚舉值檢查
-  if (VALID_SIDES.indexOf(order.side)!==-1) {
-      errors.push({ field: 'side', message: '交易方向必須是 Buy 或 Sell' });
+  if (VALID_SIDES.indexOf(order.side) === -1) {
+    errors.push({ field: 'side', message: '交易方向必須是 Buy 或 Sell' });
   }
-  if (VALID_TYPES.indexOf(order.type)!==-1) {
-      errors.push({ field: 'type', message: '訂單類型必須是 Limit 或 Market' });
+  if (VALID_TYPES.indexOf(order.type) === -1) {
+    errors.push({ field: 'type', message: '訂單類型必須是 Limit 或 Market' });
   }
   
   return errors;
 }
 
 export function createOrder(order: Order): Order {
+  // 先验证订单
+  const validationErrors = validateOrder(order);
+  if (validationErrors.length > 0) {
+    throw new Error(`订单验证失败: ${JSON.stringify(validationErrors)}`);
+  }
+
+  // 创建订单并返回
   return {
-      ...order,
-      timestamp: order.timestamp || Date.now(),
+    ...order,
+    timestamp: order.timestamp || Date.now(),
   };
 }

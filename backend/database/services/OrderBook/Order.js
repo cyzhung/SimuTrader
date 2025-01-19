@@ -17,7 +17,7 @@ function validateOrder(order) {
     var errors = [];
     // 必填字段檢查
     if (!order.order_id)
-        errors.push({ field: 'orderId', message: '訂單ID不能為空' });
+        errors.push({ field: 'order_id', message: '訂單ID不能為空' });
     if (!order.user_id)
         errors.push({ field: 'userId', message: '用戶ID不能為空' });
     if (!order.stock_symbol)
@@ -28,16 +28,22 @@ function validateOrder(order) {
     if (order.quantity <= 0)
         errors.push({ field: 'quantity', message: '數量必須大於0' });
     // 枚舉值檢查
-    if (VALID_SIDES.indexOf(order.side) !== -1) {
+    if (VALID_SIDES.indexOf(order.side) === -1) {
         errors.push({ field: 'side', message: '交易方向必須是 Buy 或 Sell' });
     }
-    if (VALID_TYPES.indexOf(order.type) !== -1) {
+    if (VALID_TYPES.indexOf(order.type) === -1) {
         errors.push({ field: 'type', message: '訂單類型必須是 Limit 或 Market' });
     }
     return errors;
 }
 exports.validateOrder = validateOrder;
 function createOrder(order) {
+    // 先验证订单
+    var validationErrors = validateOrder(order);
+    if (validationErrors.length > 0) {
+        throw new Error(`訂單驗證失敗: ${JSON.stringify(validationErrors)}`);
+    }
+    // 创建订单并返回
     return __assign(__assign({}, order), { timestamp: order.timestamp || Date.now() });
 }
 exports.createOrder = createOrder;
