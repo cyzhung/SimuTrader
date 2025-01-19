@@ -1,7 +1,8 @@
 const Database = require('../Database');
+const RepositroyAbstract = require('./RepositoryFactory');
 
-class OrderRepository{
-    static async addOrder(order){
+class OrderRepository extends RepositroyAbstract{
+    static async insert(order){
         const pool = Database.getPool();
         const query = `
             INSERT INTO orders (
@@ -33,19 +34,19 @@ class OrderRepository{
         }
     }
 
-    static async deleteOrder(order_id){
+    static async delete(order_id){
         const pool = Database.getPool();
         const query = 'DELETE FROM orders WHERE order_id = $1';
         const values = [order_id];
         try{
-            await this.pool.query(query, values);
+            await pool.query(query, values);
         }catch(error){
             console.error('Error deleting order:', error);
             throw error;
         }
     }
 
-    static async updateOrder(order_id, updates) {
+    static async update(order_id, updates) {
         const query = `
             UPDATE orders 
             SET price = COALESCE($1, price),
@@ -69,10 +70,13 @@ class OrderRepository{
         }
     }
 
-    static async getOrders(user_id, filters = {}) {
+    static async get(filters = {user_id: null}) {
+        if(!filters.user_id){
+            throw new Error('User ID is required');
+        }
+        
         const pool = Database.getPool();
         
-
         let query = `
             SELECT o.*, s.stock_symbol, s.stock_name 
             FROM orders o

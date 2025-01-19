@@ -1,11 +1,11 @@
 const express = require('express');
 const app = express();
-const usersRoutes = require('./database/routes/users');
-const stocksRoutes = require('./database/routes/stocks');
-const userSrocksRoutes = require('./database/routes/transactions');
+const usersRoutes = require('./database/routes/Users');
+const stocksRoutes = require('./database/routes/Stocks');
+const userSrocksRoutes = require('./database/routes/Transactions');
 const Database = require('./database/Database');
 const pool = require('./database/utils/DatabaseConnection');
-const priorityQueueOrderBook = require('./database/services/OrderBook/PriorityQueueOrderBook');
+const PriorityQueueOrderBook = require('./database/services/OrderBook/PriorityQueueOrderBook');
 // 初始化數據庫連接
 async function initializeApp() {
     try {
@@ -14,12 +14,12 @@ async function initializeApp() {
         console.log('Database connection initialized successfully');
 
         //獲得OrderBook實例
-        const orderbook = priorityQueueOrderBook.getInstance();
+        const orderbook = PriorityQueueOrderBook.getInstance();
         console.log('OrderBook instance obtained');
 
         // 初始化 OrderBook
-        await orderbook.initialize();
-        console.log('OrderBook initialized successfully');
+        // await orderbook.initialize();
+        // console.log('OrderBook initialized successfully');
 
         // Express 中間件
         app.use(express.json());

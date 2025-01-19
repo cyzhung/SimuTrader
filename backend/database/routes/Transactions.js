@@ -3,7 +3,10 @@ const router = express.Router();
 const stockRepository = require('../repository/StockRepository');
 const userStocksRepository = require('../repository/UserStocksRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
+const OrderRepository = require('../repository/OrderRepository');
 const Order = require('../services/OrderBook/Order');
+
+
 router.post('/buy', async (req, res) => {
     const { user_id, stock_symbol, quantity, price } = req.body;
     const transaction_date = req.body.transaction_date || new Date(); // 預設當前時間
@@ -15,15 +18,18 @@ router.post('/buy', async (req, res) => {
             return res.status(404).json({ message: `User ${user_id} doesn't exist` });
 
         // 檢查股票是否存在
-        if(!await StockRepository.stockExist(stock_symbol))
+        const stocks = await stockRepository.getStockByFilters({stock_symbol: stock_symbol});
+        if(stocks.rows.length === 0)
             return res.status(404).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
-        const stock_id = existingStock.rows[0]['stock_id'];
+        const stock_id = stocks.rows[0]['stock_id'];
+        const order_id = OrderRepository.addOrder(user_id, stock_id, quantity, price, 'buy');
 
-        const order = Order.createOrder(user_id, stock_id, quantity, price, 'buy');
+        const order = Order.createOrder(order_id, user_id, stock_id, quantity, price, 'buy');
+
         //處理order，包括更新user_stocks和transactions以及match
         try{
-            await orderbook.processOrder(order);
+            await transactionService.processOrder(order);
         } catch (error){
             return res.status(500).json({ message: 'Internal server error', error: error.message });
         }
