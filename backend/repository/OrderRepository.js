@@ -1,4 +1,4 @@
-const Database = require('../Database');
+const Database = require('../database/Database');
 const RepositroyAbstract = require('./RepositoryFactory');
 
 class OrderRepository extends RepositroyAbstract{
@@ -47,6 +47,7 @@ class OrderRepository extends RepositroyAbstract{
     }
 
     static async update(order_id, updates) {
+        const pool = Database.getPool();
         const query = `
             UPDATE orders 
             SET price = COALESCE($1, price),

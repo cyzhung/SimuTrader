@@ -1,7 +1,7 @@
 const { match } = require('assert');
 const OrderBook_abs = require('./OrderBookFactory');
-const priorityQueue = require('./PriorityQueue')
-const { validateOrder } = require('./Order');
+const priorityQueue = require('../../utils/PriorityQueue')
+const { validateOrder } = require('../Order/Order');
 
 class PriorityQueueOrderBook extends OrderBook_abs{
     constructor(){
@@ -38,17 +38,6 @@ class PriorityQueueOrderBook extends OrderBook_abs{
 
         try {
             const { buyQueue, sellQueue } = this._getOrderQueues(order.stock_id);
-            if(order.side === "Buy"){
-                const sellOrder = sellQueue.getTop();
-                const buyOrder = order;
-            }
-            else if(order.side === "Sell"){
-                const buyOrder = buyQueue.getTop();
-                const sellOrder = order;
-            }
-            if (this._matchOrder(buyOrder, sellOrder)) {
-                this._transaction(buyOrder, sellOrder);
-            }
             
             if (order.quantity > 0) {
                 if (order.side === "Buy") {
@@ -57,42 +46,17 @@ class PriorityQueueOrderBook extends OrderBook_abs{
                     sellQueue.enqueue(order);
                 }
             }
+            else{
+                throw new Error('訂單數量不能為0');
+            }
         } catch (error) {
             // 如果處理失敗，需要回滾數據庫操作
             throw new Error(`訂單處理失敗: ${error.message}`);
         }
     }
 
-    async _matchOrder(buyOrder, sellOrder) {
-        try {
-            if (!buyOrder || !sellOrder) 
-                throw new Error('訂單不能為空');
-            return buyOrder.price >= sellOrder.price;
-            
-        } catch (error) {
-            throw new Error(`訂單撮合失敗: ${error.message}`);
-        }
-    }
-
-    async _transaction(buyOrder, sellOrder) {
-        if (!buyOrder || !sellOrder) {
-            throw new Error('交易訂單不能為空');
-        }
-
-        try {
-            if(buyOrder.side === sellOrder.side){
-                throw new Error('交易訂單方向不能相同');
-            }
-            const transaction_id = await TransactionServices.transaction(buyOrder, sellOrder);
-            console.log(`交易成功: ${transaction_id}`);
-        } catch (error) {
-            throw new Error(`交易執行失敗: ${error.message}`);
-        }
-    }
-
-    async_logTransaction(order1, order2, quantity) {
-        // 記錄交易日誌
-        console.log(`Transaction: ${order1.orderId} <-> ${order2.orderId}, Quantity: ${quantity}`);
+    getOrderQueues(stock_id){
+        return this._getOrderQueues(stock_id);
     }
 }
 

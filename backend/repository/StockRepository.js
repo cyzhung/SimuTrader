@@ -1,5 +1,5 @@
 const RepositroyAbstract = require("./RepositoryFactory");
-const Database = require('../Database');
+const Database = require('../database/Database');
 
 class StockRepository extends RepositroyAbstract{
 

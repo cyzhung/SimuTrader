@@ -27,3 +27,5 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ message: '無效的認證令牌' });
     }
 };
+
+module.exports = { authMiddleware };
