@@ -5,12 +5,13 @@ const userStocksRepository = require('../repository/UserStocksRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
 const OrderRepository = require('../repository/OrderRepository');
 const Order = require('../services/OrderBook/Order');
+const authMiddleware = require('../services/Auth/AuthController');
 
-
-router.post('/buy', async (req, res) => {
-    const { user_id, stock_symbol, quantity, price } = req.body;
+router.post('/buy', authMiddleware, async (req, res) => {
+    const user_id = req.user.user_id;
+    const { stock_symbol, quantity, price } = req.body;
     const transaction_date = req.body.transaction_date || new Date(); // 預設當前時間
-    const orderbook = req.app.locals.orderbook;
+
 
     try {
         // 檢查用戶是否存在
@@ -51,8 +52,9 @@ router.post('/buy', async (req, res) => {
 });
 
 
-router.post('/sell', async(req, res)=>{
-    const { user_id, stock_symbol, quantity, transaction_date } = req.body;
+router.post('/sell', authMiddleware, async(req, res)=>{
+    const user_id = req.user.user_id;
+    const { stock_symbol, quantity, transaction_date } = req.body;
     try{
         const checkUserSQL = `SELECT * FROM users WHERE user_id = $1`;
         const existingUser = await pool.query(checkUserSQL, [user_id]);

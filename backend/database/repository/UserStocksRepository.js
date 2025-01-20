@@ -26,12 +26,18 @@ class UserStocksRepository extends RepositroyAbstract{
             SELECT * FROM user_stocks WHERE user_id = $1
         `;
         const values = [filters.user_id];
+        const paramsCount = 1;
 
         if (filters.stock_id) {
-            query += ` AND stock_id = $2`;
+            query += ` AND stock_id = $${paramsCount}`;
             values.push(filters.stock_id);
+            paramsCount++;
         }
-
+        if(filters.date){
+            query += ` AND created_at = $${paramsCount}`;
+            values.push(filters.date);
+            paramsCount++;
+        }
         try{
             const result = await pool.query(query, values);
             return result.rows;
@@ -51,19 +57,6 @@ class UserStocksRepository extends RepositroyAbstract{
             await pool.query(query, values);
         }catch(error){
             console.error('Error updating user stock:', error);
-            throw error;
-        }
-    }
-
-    static async getUserStockByDate(user_id, date){
-        const pool = Database.getPool();
-        const query = `SELECT * FROM user_stocks WHERE user_id = $1 AND created_at = $2`;
-        const values = [user_id, date];
-        try{
-            const result = await pool.query(query, values);
-            return result.rows[0];
-        }catch(error){
-            console.error('Error getting user stock by timestamp:', error);
             throw error;
         }
     }
