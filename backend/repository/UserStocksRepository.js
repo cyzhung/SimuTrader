@@ -52,7 +52,7 @@ class UserStocksRepository extends RepositroyAbstract{
         const query = `
             UPDATE user_stocks SET quantity = $1, purchase_price = $2 WHERE user_id = $3 AND stock_id = $4
         `;
-        const values = [user_id, data.stock_id, data.quantity, data.purchase_price];
+        const values = [data.quantity, data.purchase_price, user_id, data.stock_id];
         try{
             await pool.query(query, values);
         }catch(error){

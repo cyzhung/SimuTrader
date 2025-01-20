@@ -1,11 +1,11 @@
 const express = require('express');
 const app = express();
-const usersRoutes = require('./database/routes/Users');
-const stocksRoutes = require('./database/routes/Stocks');
-const userSrocksRoutes = require('./database/routes/Transactions');
+const usersRoutes = require('./routes/Users');
+const stocksRoutes = require('./routes/Stocks');
+const userSrocksRoutes = require('./routes/Transactions');
 const Database = require('./database/Database');
 const pool = require('./database/utils/DatabaseConnection');
-const PriorityQueueOrderBook = require('./database/services/OrderBook/PriorityQueueOrderBook');
+const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
 // 初始化數據庫連接
 async function initializeApp() {
     try {

@@ -4,7 +4,7 @@ const stockRepository = require('../repository/StockRepository');
 const userStocksRepository = require('../repository/UserStocksRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
 const OrderRepository = require('../repository/OrderRepository');
-const Order = require('../services/OrderBook/Order');
+const Order = require('../services/Order/Order');
 const authMiddleware = require('../services/Auth/AuthController');
 
 router.post('/buy', authMiddleware, async (req, res) => {
@@ -19,18 +19,22 @@ router.post('/buy', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: `User ${user_id} doesn't exist` });
 
         // 檢查股票是否存在
-        const stocks = await stockRepository.getStockByFilters({stock_symbol: stock_symbol});
+        const stocks = await stockRepository.get({stock_symbol: stock_symbol});
         if(stocks.rows.length === 0)
             return res.status(404).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
         const stock_id = stocks.rows[0]['stock_id'];
-        const order_id = OrderRepository.addOrder(user_id, stock_id, quantity, price, 'buy');
+        const order_id = OrderRepository.add(user_id, stock_id, quantity, price, 'buy');
 
         const order = Order.createOrder(order_id, user_id, stock_id, quantity, price, 'buy');
 
         //處理order，包括更新user_stocks和transactions以及match
         try{
-            await transactionService.processOrder(order);
+            const result = await transactionService.transaction(order);
+            
+            for(const transaction of result.transactions){
+                await TransactionsRepository.insert(transaction);
+            }
         } catch (error){
             return res.status(500).json({ message: 'Internal server error', error: error.message });
         }

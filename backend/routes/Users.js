@@ -3,12 +3,12 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const salt = 99
 const UserRepository = require('../repository/UserRepository');
-const {authMiddleware} = require('../middleware/AuthMiddleware');
-const AuthService = require('../services/Auth/AuthService');
+const {authMiddleware} = require('../middlewares/AuthMiddleware');
+const AuthController = require('../services/Auth/AuthController');
 // 創建帳號API
-router.post('/register', AuthService.createUser);
+router.post('/register', AuthController.register);
 //登入請求API
-router.post('/login', AuthService.loginUser)
+router.post('/login', AuthController.login);
 
 
 // 範例 API：取得所有用戶
