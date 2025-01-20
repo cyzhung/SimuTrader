@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
 const StockRepository = require('../repository/StockRepository');
+const authMiddleware = require('../services/Auth/AuthController');
 
-router.get('/', async (req, res)=>{
+router.get('/', authMiddleware, async (req, res)=>{
     console.log('stocks api');
     res.status(200).json({ message: `
       Welcome to stocks API page, Currently have
@@ -11,14 +12,23 @@ router.get('/', async (req, res)=>{
       /update api is post request for update stocks infomation
       `});
 });
-router.get('/search', async (req, res) => {
+router.get('/search', authMiddleware, async (req, res) => {
     const { stock_symbol, stock_name, market_type } = req.body;
-    const result = await StockRepository.get({stock_symbol: stock_symbol, stock_name: stock_name, market_type: market_type});
-
+    try{
+        const result = await StockRepository.get({stock_symbol: stock_symbol, stock_name: stock_name, market_type: market_type});
+    }
+    catch(error){
+        console.error('Error during search operation:', error.message);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
     res.status(200).json({ message: result });
 });
 
-router.post('/update', async (req, res) =>{
+router.post('/update', authMiddleware, async (req, res) =>{
+    const user = req.user;
+    if(user.role !== 'admin')
+        return res.status(401).json({ message: 'Unauthorized' });
+
     const pythonPath = process.env.PYTHONBINPATH;
     const scriptPath = process.env.UPDATE_SCRIPT_PATH;
 
