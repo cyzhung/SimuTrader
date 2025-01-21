@@ -8,10 +8,10 @@ logs/
 *.log
 
 # Environment variables
-.env
+
 
 # Docker
-*.env
+
 .dockerignore
 
 # Build files

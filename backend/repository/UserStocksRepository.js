@@ -1,5 +1,5 @@
 const RepositroyAbstract = require('./RepositoryFactory');
-
+const Database = require('../database/Database');
 class UserStocksRepository extends RepositroyAbstract{
     static async insert(user_stock){
         const pool = Database.getPool();
@@ -23,24 +23,22 @@ class UserStocksRepository extends RepositroyAbstract{
 
         const pool = Database.getPool();
         let query = `
-            SELECT * FROM user_stocks WHERE user_id = $1
+            SELECT * FROM user_stocks WHERE 1=1
         `;
-        const values = [filters.user_id];
+        const values = [];
         const paramsCount = 1;
 
-        if (filters.stock_id) {
-            query += ` AND stock_id = $${paramsCount}`;
-            values.push(filters.stock_id);
-            paramsCount++;
-        }
-        if(filters.date){
-            query += ` AND created_at = $${paramsCount}`;
-            values.push(filters.date);
-            paramsCount++;
-        }
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                query += ` AND ${key} = $${paramsCount}`;
+                values.push(value);
+                paramsCount++;
+            }
+        });
+
         try{
             const result = await pool.query(query, values);
-            return result.rows;
+            return result;
         }catch(error){
             console.error('Error getting user stocks:', error);
             throw error;

@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const UserRepository = require('../../repository/UserRepository');
 const JwtService = require('./JwtService');
 const { ValidationError } = require('../../utils/Errors');
-
+const Database = require('../../database/Database');
 class AuthService {
     static async login(email, password) {
         try {
@@ -12,7 +12,8 @@ class AuthService {
             }
 
             // 查找用戶
-            const user = await UserRepository.get({ filters: { email } });
+             const result = await UserRepository.get({ filters: { email: email } });
+            const user = result.rows[0];
             if (!user) {
                 throw new ValidationError('帳號或密碼錯誤');
             }
@@ -25,9 +26,12 @@ class AuthService {
 
             // 生成 token
             const token = JwtService.generateToken({
-                user_id: user.id,
+                user_id: user.user_id,
+                email: user.email,
                 role: user.role
             });
+
+            console.log(token);
 
             // 返回用戶信息和 token
             return {
@@ -40,6 +44,8 @@ class AuthService {
     }
 
     static async register(userData) {
+        const transaction = await Database.transaction();
+
         try {
             const { email, password, username } = userData;
 
@@ -59,8 +65,12 @@ class AuthService {
             }
 
             // 檢查用戶是否已存在
-            const existingUser = await UserRepository.get({ filters: { email } });
-            if (existingUser) {
+            const existingUser = await UserRepository.get({ 
+                filters: { email:email },
+                transaction 
+            });
+            
+            if (existingUser.rows.length > 0) {
                 throw new ValidationError('該 Email 已被註冊');
             }
 
@@ -73,20 +83,30 @@ class AuthService {
                 password_hash: passwordHash,
                 username,
                 role: 'user'
-            });
+            }, { transaction });
 
             // 生成 token
-            const token = JwtService.generateToken({
-                user_id: user.id,
-                role: user.role
-            });
+            let token;
+            try {
+                token = JwtService.generateToken({
+                    user_id: user.user_id,
+                    email: user.email,
+                    role: user.role
+                });
+            } catch (error) {
+                await transaction.rollback();
+                throw new Error('生成令牌失敗');
+            }
 
-            // 返回用戶信息和 token
+            // 提交事務
+            await transaction.commit();
+
             return {
                 user: this._sanitizeUser(user),
                 token
             };
         } catch (error) {
+            await transaction.rollback();
             throw error;
         }
     }

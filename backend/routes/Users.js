@@ -12,12 +12,12 @@ router.post('/login', AuthController.login);
 
 
 // 範例 API：取得所有用戶
-router.get('/', authMiddleware, async (req, res) => {
-  if(req.user.role !== 'admin')
-    return res.status(401).json({ message: 'Unauthorized' });
-
+router.get('/', async (req, res) => {
+  // if(req.user.role !== 'admin')
+  //   return res.status(401).json({ message: 'Unauthorized' });
+  
   try {
-    const result = await pool.query('SELECT * FROM users');
+    const result = await UserRepository.get({});
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching users:', err);

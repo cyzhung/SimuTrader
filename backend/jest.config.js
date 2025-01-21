@@ -1,8 +1,8 @@
 module.exports = {
     testEnvironment: 'node',
-    rootDir: '../',  // 指向項目根目錄
+    rootDir: './',  // 修改為當前目錄
     testMatch: [
-        '<rootDir>/tests/**/*.test.js'
+        '**/tests/**/*.test.js'
     ],
     setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
     moduleNameMapper: {

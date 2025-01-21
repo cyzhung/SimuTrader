@@ -88,29 +88,19 @@ class OrderRepository extends RepositroyAbstract{
         const values = [user_id];
         let paramCount = 1;
 
-        // 根据传入的过滤条件动态构建查询
-        if (filters.order_id) {
-            query += ` AND o.order_id = $${paramCount}`;
-            values.push(filters.order_id);
-            paramCount++;
-        }
-    
-        if (filters.stock_id) {
-            query += ` AND o.stock_id = $${paramCount}`;
-            values.push(filters.stock_id);
-            paramCount++;
-        }
-        if (filters.status) {
-            query += ` AND o.status = $${paramCount}`;
-            values.push(filters.status);
-            paramCount++;
-        }
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                query += ` AND ${key} = $${paramCount}`;
+                values.push(value);
+                paramCount++;
+            }
+        });
 
         query += ` ORDER BY o.created_at DESC`;
 
         try {
             const result = await pool.query(query, values);
-            return filters.order_id ? result.rows[0] : result.rows;
+            return result;
         } catch(error) {
             console.error('Error getting orders:', error);
             throw error;

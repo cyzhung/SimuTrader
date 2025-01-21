@@ -6,6 +6,7 @@ const userSrocksRoutes = require('./routes/Transactions');
 const Database = require('./database/Database');
 const pool = require('./database/utils/DatabaseConnection');
 const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
+
 // 初始化數據庫連接
 async function initializeApp() {
     try {

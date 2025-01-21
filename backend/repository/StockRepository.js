@@ -8,26 +8,19 @@ class StockRepository extends RepositroyAbstract{
         let query = 'SELECT * FROM stocks WHERE 1=1';
         const values = [];
         let paramCount = 1;
-        if(filters.stock_symbol){
-            query += ` AND stock_symbol = $${paramCount}`;
-            values.push(filters.stock_symbol);
-            paramCount++;
-        }
-        if(filters.stock_name){
-            query += ` AND stock_name = $${paramCount}`;
-            values.push(filters.stock_name);
-            paramCount++;
-        }
-        if(filters.market_type){
-            query += ` AND market_type = $${paramCount}`;
-            values.push(filters.market_type);
-            paramCount++;
-        }
+        
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                query += ` AND ${key} = $${paramCount}`;
+                values.push(value);
+                paramCount++;
+            }
+        });
 
 
         try{
             const result = await pool.query(query, values);
-            return result.rows;
+            return result;
         }catch(error){
             console.error('Error getting stocks by filters:', error);
             throw error;

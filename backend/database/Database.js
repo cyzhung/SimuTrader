@@ -24,6 +24,53 @@ class Database {
         return Database.instance;
     }
 
+    static async transaction() {
+        if (!Database.instance) {
+            throw new Error('Database not initialized');
+        }
+
+        const client = await Database.instance.connect();
+        let isReleased = false;
+        
+        try {
+            await client.query('BEGIN');
+            
+            return {
+                async query(text, params) {
+                    return client.query(text, params);
+                },
+                
+                async commit() {
+                    if (!isReleased) {
+                        try {
+                            await client.query('COMMIT');
+                        } finally {
+                            client.release();
+                            isReleased = true;
+                        }
+                    }
+                },
+                
+                async rollback() {
+                    if (!isReleased) {
+                        try {
+                            await client.query('ROLLBACK');
+                        } finally {
+                            client.release();
+                            isReleased = true;
+                        }
+                    }
+                }
+            };
+        } catch (error) {
+            if (!isReleased) {
+                client.release();
+                isReleased = true;
+            }
+            throw error;
+        }
+    }
+
     static async close() {
         if (Database.instance) {
             try {

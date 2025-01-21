@@ -23,19 +23,21 @@ class TransactionsRepository extends RepositroyAbstract{
         }
 
         const pool = Database.getPool();
-        const query = `SELECT * FROM transactions WHERE user_id = $1`;
-        const values = [filters.user_id];
+        const query = `SELECT * FROM transactions WHERE 1=1`;
+        const values = [];
         let paramCount = 1;
 
-        if(filters.stock_id){
-            query += ` AND stock_id = $2`;
-            values.push(filters.stock_id);
-            paramCount++;
-        }
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                query += ` AND ${key} = $${paramCount}`;
+                values.push(value);
+                paramCount++;
+            }
+        });
 
         try{
             const result = await pool.query(query, values);
-            return result.rows;
+            return result;
         }catch(error){
             console.error('Error getting transactions by user_id:', error);
             throw error;
