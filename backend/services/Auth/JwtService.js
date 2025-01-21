@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+dotenv.config();
 
 class JwtService {
     static #ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;

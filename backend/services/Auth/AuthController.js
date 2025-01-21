@@ -21,6 +21,7 @@ class AuthController {
             const { email, password } = req.body;
             const result = await AuthService.login(email, password);
 
+            
             // 設置 JWT token 到 cookie
             res.cookie('token', result.token, {
                 httpOnly: true,
@@ -35,7 +36,6 @@ class AuthController {
 
         } catch (error) {
             console.error('登入錯誤:', error);
-            
             // 根據錯誤類型返回適當的狀態碼和信息
             if (error.message === '帳號或密碼錯誤') {
                 return res.status(401).json({

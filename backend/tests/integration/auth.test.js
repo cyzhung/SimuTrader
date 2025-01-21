@@ -1,6 +1,5 @@
 const request = require('supertest');
-const express = require('express');
-const app = express();
+const app = require('../../app');  // 導入 app 實例
 const Database = require('../../database/Database');
 const pool = require('../../database/utils/DatabaseConnection');
 
@@ -55,7 +54,7 @@ describe('認證相關 API 測試', () => {
                     email: 'test@example.com',
                     password: 'password123'
                 });
-
+            console.log(response.body);
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.data.token).toBeDefined();
