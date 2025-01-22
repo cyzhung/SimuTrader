@@ -5,8 +5,6 @@ const validateRequest = (data, schema) => {
     const validationSchema = Joi.object({
         email: schema.email && Joi.string().email().required(),
         password: schema.password && Joi.string().min(8).required(),
-        //role: schema.role && Joi.string().valid('admin', 'user').required(),
-        //username: schema.username && Joi.string().min(2).required(),
         // ... 其他字段的驗證規則
     }).required();
 

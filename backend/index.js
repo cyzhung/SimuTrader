@@ -3,6 +3,7 @@ const app = express();
 const usersRoutes = require('./routes/Users');
 const stocksRoutes = require('./routes/Stocks');
 const userSrocksRoutes = require('./routes/Transactions');
+const ordersRoutes = require('./routes/Orders');
 const Database = require('./database/Database');
 const pool = require('./database/utils/DatabaseConnection');
 const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
@@ -30,7 +31,7 @@ async function initializeApp() {
         app.use('/api/users', usersRoutes);
         app.use('/api/stocks', stocksRoutes);
         app.use('/api/userStocks', userSrocksRoutes);
-        
+        app.use('/api/orders', ordersRoutes);
         // 根路徑
         app.get('/', (req, res) => {
             res.send('Welcome to the Stock Tracker API!');

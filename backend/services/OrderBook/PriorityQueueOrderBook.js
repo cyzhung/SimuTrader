@@ -2,6 +2,7 @@ const { match } = require('assert');
 const OrderBook_abs = require('./OrderBookFactory');
 const priorityQueue = require('../../utils/PriorityQueue')
 const { validateOrder } = require('../Order/Order');
+const OrderRepository = require('../../repository/OrderRepository');
 
 class PriorityQueueOrderBook extends OrderBook_abs{
     constructor(){
@@ -55,8 +56,41 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         }
     }
 
+    async initialize(){
+        const pendingOrder = await OrderRepository.get({status:"pending"});
+        const partialOrder = await OrderRepository.get({status:"partial"});
+
+        for(const order of pendingOrder.rows){
+            this.addOrder(order);
+        }
+
+        for(const order of partialOrder.rows){
+            this.addOrder(order);
+        }
+
+    }
+
     getOrderQueues(stock_id){
         return this._getOrderQueues(stock_id);
+    }
+
+    // 用於測試的方法
+    clearOrderBook() {
+        // 清空所有訂單（僅用於測試）
+        this.orderBooks.forEach((queues) => {
+            queues.buyQueue.clear();
+            queues.sellQueue.clear();
+        });
+    }
+
+    getOrderCount() {
+        // 獲取當前訂單數量（用於測試驗證）
+        let totalOrders = 0;
+        this.orderBooks.forEach((queues) => {
+            totalOrders += queues.buyQueue.size();
+            totalOrders += queues.sellQueue.size();
+        });
+        return { totalOrders };
     }
 }
 

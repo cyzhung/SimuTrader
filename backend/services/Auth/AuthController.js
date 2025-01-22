@@ -7,7 +7,7 @@ class AuthController {
             // 驗證請求參數
             const { error } = validateRequest(req.body, {
                 email: 'required|email',
-                password: 'required|min:8'
+                password: 'required|min:8',
             });
 
             if (error) {
@@ -57,7 +57,6 @@ class AuthController {
             const { error } = validateRequest(req.body, {
                 email: 'required|email',
                 password: 'required|min:8',
-                username: 'required|min:2'
             });
 
             if (error) {

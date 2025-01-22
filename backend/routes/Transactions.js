@@ -5,7 +5,7 @@ const userStocksRepository = require('../repository/UserStocksRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
 const OrderRepository = require('../repository/OrderRepository');
 const Order = require('../services/Order/Order');
-const authMiddleware = require('../services/Auth/AuthController');
+const {authMiddleware} = require('../middlewares/AuthMiddleware');
 
 router.post('/buy', authMiddleware, async (req, res) => {
     const user_id = req.user.user_id;
@@ -16,12 +16,12 @@ router.post('/buy', authMiddleware, async (req, res) => {
     try {
         // 檢查用戶是否存在
         if(!await UserRepository.userExist(user_id))
-            return res.status(404).json({ message: `User ${user_id} doesn't exist` });
+            return res.status(400).json({ message: `User ${user_id} doesn't exist` });
 
         // 檢查股票是否存在
         const stocks = await stockRepository.get({stock_symbol: stock_symbol});
         if(stocks.rows.length === 0)
-            return res.status(404).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
+            return res.status(400).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
         const stock_id = stocks.rows[0]['stock_id'];
         const order_id = OrderRepository.add(user_id, stock_id, quantity, price, 'buy');

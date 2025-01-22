@@ -1,6 +1,18 @@
 const request = require('supertest');
-const express = require('express');
-const app = express();
+const {app} = require('../../app');  // 導入 app 實例
+const Database = require('../../database/Database');
+const pool = require('../../database/utils/DatabaseConnection');
+
+beforeAll(async () => {
+    await Database.initialize(pool);
+
+});
+
+// 在所有測試結束後關閉數據庫連接
+afterAll(async () => {
+    await Database.close();
+});
+
 
 describe('股票相關 API 測試', () => {
     let authToken;
@@ -20,7 +32,7 @@ describe('股票相關 API 測試', () => {
         it('應該成功搜索股票', async () => {
             const response = await request(app)
                 .get('/api/stocks/search')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('authorization', `Bearer ${authToken}`)
                 .send({
                     stock_symbol: '2330'
                 });

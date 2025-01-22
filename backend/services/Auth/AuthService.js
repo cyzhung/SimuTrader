@@ -12,7 +12,7 @@ class AuthService {
             }
 
             // 查找用戶
-             const result = await UserRepository.get({ filters: { email: email } });
+            const result = await UserRepository.get({ filters: { email: email } });
             const user = result.rows[0];
             if (!user) {
                 throw new ValidationError('帳號或密碼錯誤');
@@ -31,12 +31,11 @@ class AuthService {
                 role: user.role
             });
 
-            console.log(token);
 
             // 返回用戶信息和 token
             return {
                 user: this._sanitizeUser(user),
-                token
+                token: token
             };
         } catch (error) {
             throw error;
@@ -48,9 +47,8 @@ class AuthService {
 
         try {
             const { email, password, username } = userData;
-
             // 驗證必填字段
-            if (!email || !password || !username) {
+            if (!email || !password) {
                 throw new ValidationError('Email、密碼和用戶名為必填項');
             }
 
@@ -103,7 +101,7 @@ class AuthService {
 
             return {
                 user: this._sanitizeUser(user),
-                token
+                token: token
             };
         } catch (error) {
             await transaction.rollback();
