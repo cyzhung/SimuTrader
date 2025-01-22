@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
 const StockRepository = require('../repository/StockRepository');
-const authMiddleware = require('../services/Auth/AuthController');
+const {authMiddleware} = require('../middlewares/AuthMiddleware');
 
 router.get('/', authMiddleware, async (req, res)=>{
     console.log('stocks api');
@@ -12,16 +12,18 @@ router.get('/', authMiddleware, async (req, res)=>{
       /update api is post request for update stocks infomation
       `});
 });
+
 router.get('/search', authMiddleware, async (req, res) => {
     const { stock_symbol, stock_name, market_type } = req.body;
     try{
         const result = await StockRepository.get({stock_symbol: stock_symbol, stock_name: stock_name, market_type: market_type});
+        res.status(200).json({ message: result });
     }
     catch(error){
         console.error('Error during search operation:', error.message);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
-    res.status(200).json({ message: result });
+    
 });
 
 router.post('/update', authMiddleware, async (req, res) =>{

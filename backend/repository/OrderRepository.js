@@ -71,32 +71,21 @@ class OrderRepository extends RepositroyAbstract{
         }
     }
 
-    static async get(filters = {user_id: null}) {
-        if(!filters.user_id){
-            throw new Error('User ID is required');
-        }
-        
-        const pool = Database.getPool();
-        
-        let query = `
-            SELECT o.*, s.stock_symbol, s.stock_name 
-            FROM orders o
-            JOIN stocks s ON o.stock_id = s.stock_id
-            WHERE 1=1
-            AND o.user_id = $1
-        `;
-        const values = [user_id];
+    static async get(filters = {}) {
+        const pool = Database.getPool();        
+        let query = `SELECT * FROM orders WHERE 1=1`;
+        const values = [];
         let paramCount = 1;
 
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== null && value !== undefined) {
-                query += ` AND ${key} = $${paramCount}`;
+                query += `AND ${key} = $${paramCount}`;
                 values.push(value);
                 paramCount++;
             }
         });
 
-        query += ` ORDER BY o.created_at DESC`;
+        query += ` ORDER BY created_at DESC`;
 
         try {
             const result = await pool.query(query, values);

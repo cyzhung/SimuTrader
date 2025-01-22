@@ -1,6 +1,21 @@
 const request = require('supertest');
-const express = require('express');
-const app = express();
+const {app, initializeApp} = require('../../app');  // 導入 app 實例
+const Database = require('../../database/Database');
+const pool = require('../../database/utils/DatabaseConnection');
+
+beforeAll(async () => {
+    try{
+        await Database.initialize(pool);
+        await initializeApp();
+    }catch(error){
+        console.error("Error initializing app:", error);
+    }
+});
+
+afterAll(async () => {
+    await Database.close();
+});
+
 
 describe('交易相關 API 測試', () => {
     let authToken;
@@ -9,7 +24,7 @@ describe('交易相關 API 測試', () => {
         const response = await request(app)
             .post('/api/users/login')
             .send({
-                email: 'test@example.com',
+                email: 'admin@example.com',
                 password: 'password123'
             });
         authToken = response.body.data.token;
@@ -19,7 +34,7 @@ describe('交易相關 API 測試', () => {
         it('應該成功購買股票', async () => {
             const response = await request(app)
                 .post('/api/transactions/buy')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('authorization', `Bearer ${authToken}`)
                 .send({
                     stock_symbol: '2330',
                     quantity: 1,
@@ -33,7 +48,7 @@ describe('交易相關 API 測試', () => {
         it('購買不存在的股票應該失敗', async () => {
             const response = await request(app)
                 .post('/api/transactions/buy')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('authorization', `Bearer ${authToken}`)
                 .send({
                     stock_symbol: 'INVALID',
                     quantity: 1,

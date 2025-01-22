@@ -3,16 +3,18 @@ const jwt = require('jsonwebtoken');
 const authMiddleware = async (req, res, next) => {
     try {
         // 從 header 獲取 token
+
         const authHeader = req.headers['authorization'];
+        
         if (!authHeader) {
             return res.status(401).json({ message: '未提供認證令牌' });
         }
 
         const token = authHeader.split(' ')[1]; // Bearer <token>
-        
+
         // 驗證 token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
+
         // 將解碼後的用戶信息添加到 request 對象中
         req.user = {
             user_id: decoded.user_id,
