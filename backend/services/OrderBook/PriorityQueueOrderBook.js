@@ -1,7 +1,7 @@
 const { match } = require('assert');
 const OrderBook_abs = require('./OrderBookFactory');
 const priorityQueue = require('../../utils/PriorityQueue')
-const { validateOrder } = require('../Order/Order');
+const { validateOrder, createOrder } = require('../Order/Order');
 const OrderRepository = require('../../repository/OrderRepository');
 
 class PriorityQueueOrderBook extends OrderBook_abs{
@@ -39,11 +39,11 @@ class PriorityQueueOrderBook extends OrderBook_abs{
 
         try {
             const { buyQueue, sellQueue } = this._getOrderQueues(order.stock_id);
-            
+
             if (order.quantity > 0) {
-                if (order.side === "Buy") {
+                if (order.order_side === "Buy") {
                     buyQueue.enqueue(order);
-                } else if (order.side === "Sell") {
+                } else if (order.order_side === "Sell") {
                     sellQueue.enqueue(order);
                 }
             }
@@ -61,17 +61,13 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         const partialOrder = await OrderRepository.get({status:"partial"});
 
         for(const order of pendingOrder.rows){
-            this.addOrder(order);
+            this.addOrder(createOrder(order));
         }
 
         for(const order of partialOrder.rows){
-            this.addOrder(order);
+            this.addOrder(createOrder(order));
         }
 
-    }
-
-    getOrderQueues(stock_id){
-        return this._getOrderQueues(stock_id);
     }
 
     // 用於測試的方法

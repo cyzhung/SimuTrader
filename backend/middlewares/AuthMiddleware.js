@@ -5,7 +5,6 @@ const authMiddleware = async (req, res, next) => {
         // 從 header 獲取 token
 
         const authHeader = req.headers['authorization'];
-        
         if (!authHeader) {
             return res.status(401).json({ message: '未提供認證令牌' });
         }

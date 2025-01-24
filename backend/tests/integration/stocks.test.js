@@ -56,7 +56,7 @@ describe('股票相關 API 測試', () => {
         it('非管理員應該無法更新股票資訊', async () => {
             const response = await request(app)
                 .post('/api/stocks/update')
-                .set('Authorization', `Bearer ${authToken}`);
+                .set('authorization', `Bearer ${authToken}`);
 
             expect(response.status).toBe(401);
         });
