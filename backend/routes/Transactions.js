@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const stockRepository = require('../repository/StockRepository');
-const userStocksRepository = require('../repository/UserStocksRepository');
+const userRepository = require('../repository/UserStocksRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
 const OrderRepository = require('../repository/OrderRepository');
 const Order = require('../services/Order/Order');
@@ -15,7 +15,7 @@ router.post('/buy', authMiddleware, async (req, res) => {
 
     try {
         // 檢查用戶是否存在
-        if(!await UserRepository.userExist(user_id))
+        if(!await userRepository.userExist(user_id))
             return res.status(400).json({ message: `User ${user_id} doesn't exist` });
 
         // 檢查股票是否存在
@@ -24,9 +24,17 @@ router.post('/buy', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
         const stock_id = stocks.rows[0]['stock_id'];
-        const order_id = OrderRepository.add(user_id, stock_id, quantity, price, 'buy');
+        const order_id = OrderRepository.add(user_id, stock_id, quantity, price, 'Buy');
 
-        const order = Order.createOrder(order_id, user_id, stock_id, quantity, price, 'buy');
+        const order = Order.createOrder({
+            order_id: order_id,
+            user_id: user_id,
+            stock_id: stock_id,
+            quantity: quantity,
+            price: price,
+            order_side: 'Buy',
+            order_type: 'Market'
+        });
 
         //處理order，包括更新user_stocks和transactions以及match
         try{

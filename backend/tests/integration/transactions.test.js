@@ -63,7 +63,7 @@ describe('交易相關 API 測試', () => {
         it('應該成功賣出股票', async () => {
             const response = await request(app)
                 .post('/api/transactions/sell')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('authorization', `Bearer ${authToken}`)
                 .send({
                     stock_symbol: '2330',
                     quantity: 1,
@@ -76,7 +76,7 @@ describe('交易相關 API 測試', () => {
         it('賣出超過持有數量應該失敗', async () => {
             const response = await request(app)
                 .post('/api/transactions/sell')
-                .set('Authorization', `Bearer ${authToken}`)
+                .set('authorization', `Bearer ${authToken}`)
                 .send({
                     stock_symbol: '2330',
                     quantity: 999999,
