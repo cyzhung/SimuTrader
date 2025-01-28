@@ -3,10 +3,10 @@ const Database = require('../database/Database');
 
 class UserRepository extends RepositroyAbstract {
 
-    static async userExist(email) {
+    static async userExist(user_id) {
         const pool = Database.getPool();
-        const query = 'SELECT * FROM users WHERE email = $1';
-        const values = [email];
+        const query = 'SELECT * FROM users WHERE user_id = $1';
+        const values = [user_id];
         try {
             const result = await pool.query(query, values);
             return result.rows.length > 0;

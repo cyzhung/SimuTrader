@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const stockRepository = require('../repository/StockRepository');
-const userRepository = require('../repository/UserStocksRepository');
+const userRepository = require('../repository/UserRepository');
 const transactionsRepository = require('../repository/TransactionsRepository');
 const OrderRepository = require('../repository/OrderRepository');
 const Order = require('../services/Order/Order');
@@ -24,7 +24,7 @@ router.post('/buy', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: `Stock symbol ${stock_symbol} doesn't exist` });
 
         const stock_id = stocks.rows[0]['stock_id'];
-        const order_id = OrderRepository.add(user_id, stock_id, quantity, price, 'Buy');
+        const order_id = OrderRepository.insert(user_id, stock_id, quantity, price, 'Buy');
 
         const order = Order.createOrder({
             order_id: order_id,
@@ -35,7 +35,7 @@ router.post('/buy', authMiddleware, async (req, res) => {
             order_side: 'Buy',
             order_type: 'Market'
         });
-
+        console.log(order);
         //處理order，包括更新user_stocks和transactions以及match
         try{
             const result = await transactionService.transaction(order);

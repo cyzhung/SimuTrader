@@ -8,8 +8,8 @@ class OrderRepository extends RepositroyAbstract{
             INSERT INTO orders (
                 user_id, 
                 stock_id, 
-                order_type,      // 修改：從 side 改為 order_type
-                order_side,      // 新增：需要包含 order_side (Limit/Market)
+                order_type,      
+                order_side,      
                 price, 
                 quantity,
                 remaining_quantity,
