@@ -1,13 +1,14 @@
 const { match } = require('assert');
 const OrderBook_abs = require('./OrderBookFactory');
 const priorityQueue = require('../../utils/PriorityQueue')
-const { validateOrder, createOrder } = require('../Order/Order');
+const OrderService = require('../Order/OrderService');
 const OrderRepository = require('../../repository/OrderRepository');
 
 class PriorityQueueOrderBook extends OrderBook_abs{
     constructor(){
         super();
         this.orderBooks = new Map(); // stock_id -> {buyQueue, sellQueue}
+        this.orderMap = new Map();   // order_id -> order (reference)
     }
 
     static instance = null;
@@ -31,25 +32,9 @@ class PriorityQueueOrderBook extends OrderBook_abs{
     }
 
     async addOrder(order) {
-        // 訂單驗證
-        const errors = validateOrder(order);
-        if (errors.length > 0) {
-            throw new Error(`訂單驗證失敗: ${JSON.stringify(errors)}`);
-        }
-
         try {
             const { buyQueue, sellQueue } = this._getOrderQueues(order.stock_id);
-
-            if (order.quantity > 0) {
-                if (order.order_side === "Buy") {
-                    buyQueue.enqueue(order);
-                } else if (order.order_side === "Sell") {
-                    sellQueue.enqueue(order);
-                }
-            }
-            else{
-                throw new Error('訂單數量不能為0');
-            }
+            this.orderMap.set(order.order_id, order);
         } catch (error) {
             // 如果處理失敗，需要回滾數據庫操作
             throw new Error(`訂單處理失敗: ${error.message}`);
@@ -57,15 +42,17 @@ class PriorityQueueOrderBook extends OrderBook_abs{
     }
 
     async initialize(){
-        const pendingOrder = await OrderRepository.get({status:"pending"});
-        const partialOrder = await OrderRepository.get({status:"partial"});
-
-        for(const order of pendingOrder.rows){
-            this.addOrder(createOrder(order));
+        const pendingOrdersInfo = await OrderRepository.get({status:"pending"});
+        const partialOrdersInfo = await OrderRepository.get({status:"partial"});
+ 
+        for(const orderInfo of pendingOrdersInfo.rows){
+            const order = await OrderService.createOrder(orderInfo);
+            this.addOrder(order);
         }
 
-        for(const order of partialOrder.rows){
-            this.addOrder(createOrder(order));
+        for(const orderInfo of partialOrdersInfo.rows){
+            const order = await OrderService.createOrder(orderInfo);
+            this.addOrder(order);
         }
 
     }
@@ -88,6 +75,21 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         });
         return { totalOrders };
     }
+
+    removeOrder(orderId) {
+        const order = this.orderMap.get(orderId);
+        if (!order) {
+            throw new Error('訂單不存在');
+        }
+
+        // 直接修改訂單狀態，因為是參考，所以在 queue 中的訂單狀態也會改變
+        order.status = 'cancelled';
+        
+        // 從 Map 中移除參考（可選）
+        this.orderMap.delete(orderId);
+    }
+
+
 }
 
 module.exports = PriorityQueueOrderBook;
