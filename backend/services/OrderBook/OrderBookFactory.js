@@ -13,11 +13,15 @@ class AbstractOrderBook{
         throw new Error("abstractMethod() must be implemented in derived classes.");
     }
 
-    async matchOrder(order){
+    async matchOrder(buyOrder, sellOrder){
         throw new Error("abstractMethod() must be implemented in derived classes.");
     }
     
     async _transaction(order1, order2){
+        throw new Error("abstractMethod() must be implemented in derived classes.");
+    }
+
+    async initialize(){
         throw new Error("abstractMethod() must be implemented in derived classes.");
     }
 }

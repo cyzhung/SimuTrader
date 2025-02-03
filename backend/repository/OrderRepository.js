@@ -27,7 +27,7 @@ class OrderRepository extends RepositroyAbstract{
         ];
         try{
             const result = await pool.query(query, values);
-            return result.rows[0];
+            return result.rows[0].order_id;
         }catch(error){
             console.error('Error adding order:', error);
             throw error;

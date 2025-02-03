@@ -7,8 +7,9 @@ const ordersRoutes = require('./routes/Orders');
 const transactionsRoutes = require('./routes/Transactions');
 const Database = require('./database/Database');
 const pool = require('./database/utils/DatabaseConnection');
+const OrderService = require('./services/Order/OrderService');
+const OrderBookService = require('./services/OrderBook/OrderBookService');
 const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
-
 // 初始化數據庫連接
 async function initializeApp() {
     try {
@@ -16,17 +17,14 @@ async function initializeApp() {
         await Database.initialize(pool);
         console.log('Database connection initialized successfully');
 
-        //獲得OrderBook實例
-        const orderbook = PriorityQueueOrderBook.getInstance();
-        console.log('OrderBook instance obtained');
-
-        //初始化 OrderBook
-        await orderbook.initialize();
+        // 初始化 OrderBook
+        await OrderBookService.initialize();
         console.log('OrderBook initialized successfully');
+
+        console.log(PriorityQueueOrderBook.getInstance());
         // Express 中間件
         app.use(express.json());
         
-        app.locals.orderbook = orderbook;
         // API 路由
         app.use('/api/users', usersRoutes);
         app.use('/api/stocks', stocksRoutes);
