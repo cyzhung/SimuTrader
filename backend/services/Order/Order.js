@@ -10,16 +10,12 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateOrder = validateOrder;
-exports.createOrder = createOrder;
+exports.__esModule = true;
 var VALID_SIDES = ["Buy", "Sell"];
 var VALID_TYPES = ["Limit", "Market"];
 function validateOrder(order) {
     var errors = [];
     // 必填字段檢查
-    if (!order.order_id)
-        errors.push({ field: 'order_id', message: '訂單ID不能為空' });
     if (!order.user_id)
         errors.push({ field: 'user_id', message: '用戶ID不能為空' });
     if (!order.stock_id)
@@ -38,12 +34,14 @@ function validateOrder(order) {
     }
     return errors;
 }
+exports.validateOrder = validateOrder;
 function createOrder(order) {
     // 先验证订单
     var validationErrors = validateOrder(order);
     if (validationErrors.length > 0) {
-        throw new Error("\u8BA2\u5355\u9A8C\u8BC1\u5931\u8D25: ".concat(JSON.stringify(validationErrors)));
+        throw new Error("\u8BA2\u5355\u9A8C\u8BC1\u5931\u8D25: " + JSON.stringify(validationErrors));
     }
     // 创建订单并返回
     return __assign(__assign({}, order), { timestamp: order.timestamp || Date.now() });
 }
+exports.createOrder = createOrder;

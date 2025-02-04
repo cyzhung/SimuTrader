@@ -1,6 +1,5 @@
 export interface Order {
-    order_id: string,
-    user_id: string;
+    user_id: string,
     stock_id: string;
     price: number;
     quantity: number;
@@ -21,7 +20,6 @@ export interface Order {
     const errors: OrderValidationError[] = [];
   
     // 必填字段檢查
-    if (!order.order_id) errors.push({ field: 'order_id', message: '訂單ID不能為空' });
     if (!order.user_id) errors.push({ field: 'user_id', message: '用戶ID不能為空' });
     if (!order.stock_id) errors.push({ field: 'stock_id', message: '股票id不能為空' });
     

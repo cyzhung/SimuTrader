@@ -31,9 +31,14 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         return this.orderBooks.get(stock_id);
     }
 
-    async addOrder(order) {
+    addOrder(order) {
         try {
             const { buyQueue, sellQueue } = this._getOrderQueues(order.stock_id);
+            if(order.order_side === "Buy"){
+                buyQueue.enqueue(order);
+            }else{
+                sellQueue.enqueue(order);
+            }
             this.orderMap.set(order.order_id, order);
         } catch (error) {
             // 如果處理失敗，需要回滾數據庫操作
@@ -89,7 +94,9 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         this.orderMap.delete(orderId);
     }
 
-
+    getOrderQueues(stock_id){
+        return this._getOrderQueues(stock_id);
+    }
 }
 
 module.exports = PriorityQueueOrderBook;

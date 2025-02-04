@@ -4,10 +4,16 @@ const Database = require('../database/Database');
 class TransactionsRepository extends RepositroyAbstract{
     static async insert(transaction){
         const pool = Database.getPool();
-        const query = `INSERT INTO transactions (user_id, stock_id, quantity, price, transaction_date, transaction_type) 
-                        VALUES ($1, $2, $3, $4, $5, $6)
+        console.log(transaction)
+        const query = `INSERT INTO transactions (buy_order_id, sell_order_id, quantity, price, transaction_date) 
+                        VALUES ($1, $2, $3, $4, $5)
                         RETURNING transaction_id`;
-        const values = [transaction.user_id, transaction.stock_id, transaction.quantity, transaction.price, transaction.transaction_date, transaction.transaction_type];
+        const values = [
+            transaction.buy_order_id,
+            transaction.sell_order_id,
+            transaction.quantity,
+            transaction.price,
+            transaction.transaction_date];
         try{
             const result = await pool.query(query, values);
             return result.rows[0].transaction_id;

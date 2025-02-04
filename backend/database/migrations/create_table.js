@@ -1,4 +1,3 @@
-
 const pool = require('../utils/DatabaseConnection'); // 引入資料庫連線
 
 const initDatabase = async () => {
@@ -67,18 +66,19 @@ const initDatabase = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS transactions (
         transaction_id SERIAL PRIMARY KEY,
-        user_id INT REFERENCES users(user_id) ON DELETE CASCADE,    -- 外鍵，連結到 users 表
-        stock_id INT REFERENCES stocks(stock_id) ON DELETE CASCADE, -- 外鍵，連結到 stocks 表
-        transaction_date TIMESTAMP DEFAULT NOW(),                   -- 交易日期
-        transaction_type VARCHAR(10) NOT NULL,                      -- 交易類型(買入/賣出)
-        price NUMERIC(10, 2) NOT NULL CHECK(price > 0),             -- 交易價格
-        quantity INT NOT NULL CHECK (quantity > 0)                  -- 交易數量
+        buy_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,     -- 買方訂單ID
+        sell_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,    -- 賣方訂單ID
+        quantity INT NOT NULL CHECK (quantity > 0),                         -- 成交數量
+        price NUMERIC(10, 2) NOT NULL CHECK(price > 0),                    -- 成交價格
+        transaction_date TIMESTAMP DEFAULT NOW(),                           -- 成交時間
+        FOREIGN KEY (buy_order_id) REFERENCES orders(order_id),
+        FOREIGN KEY (sell_order_id) REFERENCES orders(order_id)
       );`
     );
-    console.log('stock_prices table created.');
+    console.log('Transactions table created.');
 
     await pool.query(`
-      CREATE TABLE orders (
+      CREATE TABLE IF NOT EXISTS orders (
         order_id SERIAL PRIMARY KEY,              -- 訂單唯一ID
         user_id INT REFERENCES users(user_id),    -- 下單用戶
         stock_id INT REFERENCES stocks(stock_id), -- 股票ID
