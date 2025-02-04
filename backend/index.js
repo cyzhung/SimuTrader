@@ -20,8 +20,6 @@ async function initializeApp() {
         // 初始化 OrderBook
         await OrderBookService.initialize();
         console.log('OrderBook initialized successfully');
-
-        console.log(PriorityQueueOrderBook.getInstance());
         // Express 中間件
         app.use(express.json());
         

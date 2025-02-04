@@ -23,7 +23,7 @@ class TransactionServices {
             if (stocks.rows.length === 0) {
                 throw new Error(`股票代碼 ${transactionData.stock_symbol} 不存在`);
             }
-
+            
             // 2. 創建買入訂單
             const order = OrderService.createOrder({
                 user_id: transactionData.user_id,
@@ -37,7 +37,11 @@ class TransactionServices {
             });
 
             const order_id = await OrderRepository.insert(order, { transaction: client });
-
+            OrderBookService.addOrder({
+                ...order,
+                order_id: order_id
+            });
+    
             // 3. 將訂單加入訂單簿並進行撮合
             const result = await this.transaction({
                 ...order,
@@ -183,6 +187,12 @@ class TransactionServices {
             // 計算交易數量
             const transactionQuantity = Math.min(buyOrder.remaining_quantity, sellOrder.remaining_quantity);
             
+            const transactionInfo = {
+                buy_order_id: buyOrder.order_id,
+                sell_order_id: sellOrder.order_id,
+                quantity: transactionQuantity,
+                price: buyOrder.price
+            }
             // 創建交易記錄
             const transaction_id = await TransactionsRepository.insert({
                 buy_order_id: buyOrder.order_id,

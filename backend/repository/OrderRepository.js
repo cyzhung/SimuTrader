@@ -2,8 +2,8 @@ const Database = require('../database/Database');
 const RepositroyAbstract = require('./RepositoryFactory');
 
 class OrderRepository extends RepositroyAbstract{
-    static async insert(order){
-        const pool = Database.getPool();
+    static async insert(order, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = `
             INSERT INTO orders (
                 user_id, 
@@ -34,8 +34,8 @@ class OrderRepository extends RepositroyAbstract{
         }
     }
 
-    static async delete(order_id){
-        const pool = Database.getPool();
+    static async delete(order_id, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = 'DELETE FROM orders WHERE order_id = $1';
         const values = [order_id];
         try{
@@ -46,8 +46,8 @@ class OrderRepository extends RepositroyAbstract{
         }
     }
 
-    static async update(order_id, updates) {
-        const pool = Database.getPool();
+    static async update(order_id, updates, { transaction } = {}) {
+        const pool = transaction || Database.getPool();
         const query = `
             UPDATE orders 
             SET price = COALESCE($1, price),
@@ -71,8 +71,8 @@ class OrderRepository extends RepositroyAbstract{
         }
     }
 
-    static async get(filters = {}) {
-        const pool = Database.getPool();        
+    static async get(filters = {}, { transaction } = {}) {
+        const pool = transaction || Database.getPool();        
         let query = `SELECT * FROM orders WHERE 1=1`;
         const values = [];
         let paramCount = 1;

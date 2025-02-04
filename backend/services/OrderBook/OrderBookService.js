@@ -1,54 +1,77 @@
 const PriorityQueueOrderBook = require('./PriorityQueueOrderBook');
 const DatabaseOrderBook = require('./DatabaseOrderBook');
-const OrderService = require('../Order/OrderService');
 const dotenv = require('dotenv');
 dotenv.config();
 
-class OrderBookService{
-    static async initialize(){
-        this.orderBook = process.env.ORDER_BOOK === 'PriorityQueue' ? PriorityQueueOrderBook.getInstance() : DatabaseOrderBook.getInstance();
-        await this.orderBook.initialize();
+class OrderBookService {
+    static orderBook = null;
+
+    static async initialize() {
+        if (!this.orderBook) {
+            this.orderBook = process.env.ORDER_BOOK === 'PriorityQueue' 
+                ? PriorityQueueOrderBook.getInstance() 
+                : DatabaseOrderBook.getInstance();
+            await this.orderBook.initialize();
+        }
     }
 
-    static async addOrder(order){
-        try{
-            OrderService.validateOrder(order);
-            this.orderbook.addOrder(order);
-        }
-        catch(error){
+    static async addOrder(order) {
+        try {
+            if (!this.orderBook) {
+                await this.initialize();
+            }
+            await this.orderBook.addOrder(order);
+        } catch (error) {
             throw new Error(`訂單處理失敗: ${error.message}`);
         }
     }
-    static async removeOrder(order_id){
-        try{
-            this.orderbook.removeOrder(order_id);
-        }
-        catch(error){
+
+    static async removeOrder(order_id) {
+        try {
+            if (!this.orderBook) {
+                await this.initialize();
+            }
+            await this.orderBook.removeOrder(order_id);
+        } catch (error) {
             throw new Error(`訂單處理失敗: ${error.message}`);
         }
     }
-    static async matchOrder(buyOrder, sellOrder) {
+
+    static async matchOrders(buyOrder, sellOrder) {
+        if (!this.orderBook) {
+            await this.initialize();
+        }
+
         // 市價單直接匹配
         if (buyOrder.order_type === 'Market' || sellOrder.order_type === 'Market') {
             return true;
         }
 
-        // 限價單邏輯：
-        // 1. 買方願意買入的最高價格 >= 賣方願意賣出的最低價格
-        // 2. 成交價格以先到先得為原則
+        // 限價單邏輯
         if (buyOrder.order_type === 'Limit' && sellOrder.order_type === 'Limit') {
             return buyOrder.price >= sellOrder.price;
         }
     }
 
-    // 取得最佳賣價（給買方參考）
     static getBestAskPrice() {
-        return this.orderbook.getLowestSellPrice();
+        if (!this.orderBook) {
+            throw new Error('OrderBook 未初始化');
+        }
+        return this.orderBook.getLowestSellPrice();
     }
 
-    // 取得最佳買價（給賣方參考）
     static getBestBidPrice() {
-        return this.orderbook.getHighestBuyPrice();
+        if (!this.orderBook) {
+            throw new Error('OrderBook 未初始化');
+        }
+        return this.orderBook.getHighestBuyPrice();
+    }
+
+    static getOrderBook() {
+        if (!this.orderBook) {
+            throw new Error('OrderBook 未初始化');
+        }
+        return this.orderBook;
     }
 }
 

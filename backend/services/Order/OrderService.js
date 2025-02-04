@@ -2,7 +2,7 @@ const OrderRepository = require('../../repository/OrderRepository');
 const Order = require('./Order');
 
 class OrderService {
-    static async createOrder(orderData) {
+    static createOrder(orderData) {
         try {
             const order = Order.createOrder(orderData);
             return order;
