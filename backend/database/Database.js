@@ -1,7 +1,9 @@
-class Database {
-    static instance = null;
+const pool = require('./utils/DatabaseConnection');
 
-    static async initialize(pool) {
+
+class Database {
+
+    static async initialize() {
         if (Database.instance) {
             return;
         }
@@ -24,51 +26,48 @@ class Database {
         return Database.instance;
     }
 
+    /**
+     * 開始一個新的事務
+     * @returns {Promise<Object>} 包含 client 和事務方法的物件
+     */
     static async transaction() {
-        if (!Database.instance) {
-            throw new Error('Database not initialized');
-        }
 
         const client = await Database.instance.connect();
-        let isReleased = false;
-        
+
         try {
             await client.query('BEGIN');
             
             return {
-                async query(text, params) {
-                    return client.query(text, params);
-                },
-                
-                async commit() {
-                    if (!isReleased) {
-                        try {
-                            await client.query('COMMIT');
-                        } finally {
-                            client.release();
-                            isReleased = true;
-                        }
+                query: (...args) => client.query(...args),
+                commit: async () => {
+                    try {
+                        await client.query('COMMIT');
+                    } finally {
+                        client.release();
                     }
                 },
-                
-                async rollback() {
-                    if (!isReleased) {
-                        try {
-                            await client.query('ROLLBACK');
-                        } finally {
-                            client.release();
-                            isReleased = true;
-                        }
+                rollback: async () => {
+                    try {
+                        await client.query('ROLLBACK');
+                    } finally {
+                        client.release();
                     }
-                }
+                },
+                release: () => client.release()
             };
         } catch (error) {
-            if (!isReleased) {
-                client.release();
-                isReleased = true;
-            }
+            client.release();
             throw error;
         }
+    }
+
+    /**
+     * 執行查詢
+     * @param {string} text - SQL 查詢語句
+     * @param {Array} params - 查詢參數
+     */
+    static async query(text, params) {
+        return Database.instance.query(text, params);
     }
 
     static async close() {
@@ -85,4 +84,5 @@ class Database {
     }
 }
 
+module.exports = Database; 
 module.exports = Database; 

@@ -37,20 +37,9 @@ class OrderBookService {
         }
     }
 
-    static async matchOrders(buyOrder, sellOrder) {
-        if (!this.orderBook) {
-            await this.initialize();
-        }
-
-        // 市價單直接匹配
-        if (buyOrder.order_type === 'Market' || sellOrder.order_type === 'Market') {
-            return true;
-        }
-
-        // 限價單邏輯
-        if (buyOrder.order_type === 'Limit' && sellOrder.order_type === 'Limit') {
-            return buyOrder.price >= sellOrder.price;
-        }
+    
+    static async findMatchingOrder(order){
+        return this.orderBook.findMatchingOrder(order);
     }
 
     static getBestAskPrice() {
@@ -72,6 +61,10 @@ class OrderBookService {
             throw new Error('OrderBook 未初始化');
         }
         return this.orderBook;
+    }
+
+    static updateUserHoldings(order_id, transactionData){
+        return this.orderBook.updateUserHoldings(order_id, transactionData);
     }
 }
 

@@ -1,96 +1,47 @@
 const TransactionsRepository = require('../../repository/TransactionsRepository');
 const OrderRepository = require('../../repository/OrderRepository');
-const OrderService = require('../Order/OrderService');
 const OrderBookService = require('../OrderBook/OrderBookService');
+const OrderService = require('../Order/OrderService');
 const Database = require('../../database/Database');
 const userRepository = require('../../repository/UserRepository');
 const stockRepository = require('../../repository/StockRepository');
 const UserStocksRepository = require('../../repository/UserStocksRepository');
+const UserRepository = require('../../repository/UserRepository');
 
 class TransactionServices {
+    /**
+     * 創建買入訂單並進行撮合
+     * @param {Object} transactionData - 交易數據
+     * @returns {Promise<Object>} 交易結果
+     */
     static async createBuyTransaction(transactionData) {
         const client = await Database.transaction();
         
         try {
-            // 1. 檢查用戶和股票
-            if (!await userRepository.userExist(transactionData.user_id)) {
-                throw new Error(`用戶 ${transactionData.user_id} 不存在`);
-            }
-
-            const stocks = await stockRepository.get({
-                stock_symbol: transactionData.stock_symbol
-            });
-            if (stocks.rows.length === 0) {
-                throw new Error(`股票代碼 ${transactionData.stock_symbol} 不存在`);
-            }
+            // 1. 基礎驗證
+            await this._validateTransactionData(transactionData);
             
-            // 2. 創建買入訂單
-            const order = OrderService.createOrder({
-                user_id: transactionData.user_id,
-                stock_id: stocks.rows[0].stock_id,
-                quantity: transactionData.quantity,
-                remaining_quantity: transactionData.quantity,
-                price: transactionData.price,
-                order_side: 'Buy',
-                order_type: transactionData.price ? 'Limit' : 'Market',
-                status: 'pending'
-            });
+            // 2. 創建訂單
+            await client.query('SAVEPOINT order_creation');
+            const order = await this._createOrder(transactionData, 'Buy', client);
 
-            const order_id = await OrderRepository.insert(order, { transaction: client });
-            OrderBookService.addOrder({
-                ...order,
-                order_id: order_id
-            });
-    
-            // 3. 將訂單加入訂單簿並進行撮合
-            const result = await this.transaction({
-                ...order,
-                order_id
-            });
+            try {
+                // 3. 進行撮合
+                const result = await this._processTransaction(order, client);
 
-            // 4. 如果有成交，更新用戶持股
-            if (result.transactions.length > 0) {
-                for (const transaction of result.transactions) {
-                    const userStocks = await UserStocksRepository.get({
-                        user_id: transactionData.user_id,
-                        stock_id: stocks.rows[0].stock_id
-                    }, { transaction: client });
-
-                    if (userStocks.rows.length === 0) {
-                        // 新建持股記錄
-                        await UserStocksRepository.insert({
-                            user_id: transactionData.user_id,
-                            stock_id: stocks.rows[0].stock_id,
-                            quantity: transaction.quantity,
-                            purchase_price: transaction.price
-                        }, { transaction: client });
-                    } else {
-                        // 更新現有持股
-                        const currentHolding = userStocks.rows[0];
-                        const newQuantity = currentHolding.quantity + transaction.quantity;
-                        const newAvgPrice = (currentHolding.purchase_price * currentHolding.quantity + 
-                                          transaction.price * transaction.quantity) / newQuantity;
-                        
-                        await UserStocksRepository.update({
-                            user_id: transactionData.user_id,
-                            stock_id: stocks.rows[0].stock_id,
-                            quantity: newQuantity,
-                            purchase_price: newAvgPrice
-                        }, { transaction: client });
-                    }
+                // 4. 更新用戶持股
+                if (result.transactions.length > 0) {
+                    await this._updateUserHoldings(result.transactions, client);
                 }
-            }
 
-            await client.commit();
-            return {
-                order_id,
-                stock_id: stocks.rows[0].stock_id,
-                quantity: transactionData.quantity,
-                price: transactionData.price,
-                status: result.status,
-                message: result.message,
-                transactions: result.transactions
-            };
+                // 5. 提交事務
+                await client.commit();
+                return this._formatTransactionResult(order, result);
+
+            } catch (error) {
+                await client.query('ROLLBACK TO SAVEPOINT order_creation');
+                throw error;
+            }
 
         } catch (error) {
             await client.rollback();
@@ -98,83 +49,42 @@ class TransactionServices {
         }
     }
 
+    /**
+     * 創建賣出訂單並進行撮合
+     * @param {Object} transactionData - 交易數據
+     * @returns {Promise<Object>} 交易結果
+     */
     static async createSellTransaction(transactionData) {
         const client = await Database.transaction();
         
         try {
-            // 1. 檢查用戶和股票
-            if (!await userRepository.userExist(transactionData.user_id)) {
-                throw new Error(`用戶 ${transactionData.user_id} 不存在`);
-            }
+            // 1. 基礎驗證
+            await this._validateTransactionData(transactionData);
+            
+            // 2. 檢查持股
+            await this._validateUserHoldings(transactionData, client);
 
-            const stocks = await stockRepository.get({
-                stock_symbol: transactionData.stock_symbol
-            });
-            if (stocks.rows.length === 0) {
-                throw new Error(`股票代碼 ${transactionData.stock_symbol} 不存在`);
-            }
+            // 3. 創建訂單
+            await client.query('SAVEPOINT order_creation');
+            const order = await this._createOrder(transactionData, 'Sell', client);
 
-            // 2. 檢查用戶持股
-            const userStocks = await UserStocksRepository.get({
-                user_id: transactionData.user_id,
-                stock_id: stocks.rows[0].stock_id
-            });
+            try {
+                // 4. 進行撮合
+                const result = await this._processTransaction(order, client);
 
-            if (!userStocks.rows.length || userStocks.rows[0].quantity < transactionData.quantity) {
-                throw new Error('持股不足');
-            }
-
-            // 3. 創建賣出訂單
-            const order = {
-                user_id: transactionData.user_id,
-                stock_id: stocks.rows[0].stock_id,
-                quantity: transactionData.quantity,
-                remaining_quantity: transactionData.quantity,
-                price: transactionData.price,
-                order_side: 'Sell',
-                order_type: transactionData.price ? 'Limit' : 'Market',
-                status: 'pending'
-            };
-
-            const order_id = await OrderRepository.insert(order, { transaction: client });
-
-            // 4. 將訂單加入訂單簿並進行撮合
-            const result = await this.transaction({
-                ...order,
-                order_id
-            });
-
-            // 5. 如果有成交，更新用戶持股
-            if (result.transactions.length > 0) {
-                for (const transaction of result.transactions) {
-                    const currentHolding = userStocks.rows[0];
-                    const newQuantity = currentHolding.quantity - transaction.quantity;
-                    
-                    if (newQuantity === 0) {
-                        await UserStocksRepository.delete({
-                            user_id: transactionData.user_id,
-                            stock_id: stocks.rows[0].stock_id
-                        }, { transaction: client });
-                    } else {
-                        await UserStocksRepository.update({
-                            user_id: transactionData.user_id,
-                            stock_id: stocks.rows[0].stock_id,
-                            quantity: newQuantity
-                        }, { transaction: client });
-                    }
+                // 5. 更新用戶持股
+                if (result.transactions.length > 0) {
+                    await this._updateUserHoldings(transactionData, result.transactions, client);
                 }
-            }
 
-            await client.commit();
-            return {
-                order_id,
-                stock_id: stocks.rows[0].stock_id,
-                quantity: transactionData.quantity,
-                price: transactionData.price,
-                status: result.status,
-                message: result.message,
-                transactions: result.transactions
-            };
+                // 6. 提交事務
+                await client.commit();
+                return this._formatTransactionResult(order, result);
+
+            } catch (error) {
+                await client.query('ROLLBACK TO SAVEPOINT order_creation');
+                throw error;
+            }
 
         } catch (error) {
             await client.rollback();
@@ -182,96 +92,256 @@ class TransactionServices {
         }
     }
 
-    static async _transaction(buyOrder, sellOrder) {
-        try {
-            // 計算交易數量
-            const transactionQuantity = Math.min(buyOrder.remaining_quantity, sellOrder.remaining_quantity);
-            
-            const transactionInfo = {
-                buy_order_id: buyOrder.order_id,
-                sell_order_id: sellOrder.order_id,
-                quantity: transactionQuantity,
-                price: buyOrder.price
+    static async _updateUserHoldings(transactionData, transactions, client) {
+        for (const transaction of transactions) {
+            if (transactionData.order_side === 'Buy') {
+                await this._updateBuyerHoldings(transactionData, transaction, client);
+            } else {
+                await this._updateSellerHoldings(transactionData, transaction, client);
             }
-            // 創建交易記錄
-            const transaction_id = await TransactionsRepository.insert({
-                buy_order_id: buyOrder.order_id,
-                sell_order_id: sellOrder.order_id,
-                quantity: transactionQuantity,
-                price: buyOrder.price
-            });
-
-            // 更新訂單數量
-            buyOrder.remaining_quantity -= transactionQuantity;
-            sellOrder.remaining_quantity -= transactionQuantity;
-
-            // 更新訂單狀態
-            buyOrder.status = buyOrder.remaining_quantity === 0 ? 'filled' : 'partial';
-            sellOrder.status = sellOrder.remaining_quantity === 0 ? 'filled' : 'partial';
-
-            return {
-                buy_order: buyOrder,
-                sell_order: sellOrder,
-                transaction_id
-            };
-        } catch (error) {
-            throw new Error(`交易執行失敗: ${error.message}`);
         }
     }
-    static async transaction(order) {
-        const orderbook = OrderBookService.getOrderBook();
-        const transactions = [];
-        OrderBookService.addOrder(order);
-        while (order.remaining_quantity > 0) {
-            const {buyQueue, sellQueue} = orderbook.getOrderQueues(order.stock_id);
-            let buyOrder, sellOrder;
 
-            if (order.side === 'buy') {
-                buyOrder = order;
-                sellOrder = sellQueue.getTop();
-                if (!sellOrder) break;
-            } else {
-                sellOrder = order;
-                buyOrder = buyQueue.getTop();
-                if (!buyOrder) break;
-            }
+    /**
+     * 更新買方持股
+     * @private
+     */
+    static async _updateBuyerHoldings(transactionData, transaction, client) {
+        const user_id = await OrderRepository.get({
+            order_id: order_id
+        }).rows[0].user_id;
 
-            if (!OrderBookService.matchOrders(buyOrder, sellOrder)) {
-               break;
-            }
+        const stock_id = await StockRepository.get({
+            stock_symbol: transaction.stock_symbol
+        }).rows[0].stock_id;
 
-            const transaction = await this._transaction(buyOrder, sellOrder);
-            transactions.push(transaction);
+        const userStocks = await UserStocksRepository.get({
+            user_id: user_id,
+            stock_id: stock_id
+        }, { transaction: client });
+
+        if (userStocks.rows.length === 0) {
+            await UserStocksRepository.insert({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: transaction.quantity,
+                purchase_price: transaction.price
+            }, { transaction: client });
+        } else {
+            const currentHolding = userStocks.rows[0];
+            const newQuantity = currentHolding.quantity + transaction.quantity;
+            const newAvgPrice = (currentHolding.purchase_price * currentHolding.quantity + 
+                              transaction.price * transaction.quantity) / newQuantity;
             
-            for(const transaction of transactions){
-                await Promise.all([
-                    OrderRepository.updateOrder(transaction.buy_order),
-                    OrderRepository.updateOrder(transaction.sell_order)
-                ]);
-            }
-            // 只移除不是新進訂單的完成訂單
-            if (buyOrder.remaining_quantity === 0 && buyOrder !== order) {
-                buyQueue.dequeue();
-            }
-            if (sellOrder.remaining_quantity === 0 && sellOrder !== order) {
-                sellQueue.dequeue();
-            }
+            await UserStocksRepository.update({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: newQuantity,
+                purchase_price: newAvgPrice
+            }, { transaction: client });
         }
-        // 如果還有剩餘數量，加入訂單簿
-        if (order.remaining_quantity > 0 && order.status !== 'filled') {
-            orderbook.addOrder(order);
-            return {
-                status: 'partial',
-                message: '部分成交，剩餘訂單已加入訂單簿',
-                transactions
-            };
+    }
+
+    /**
+     * 更新賣方持股
+     * @private
+     */
+    static async _updateSellerHoldings(transactionData, transaction, client) {
+        const currentHolding = await UserStocksRepository.get({
+            user_id: transactionData.user_id,
+            stock_id: transactionData.stock_id
+        }, { transaction: client });
+
+        const newQuantity = currentHolding.rows[0].quantity - transaction.quantity;
+        
+        if (newQuantity === 0) {
+            await UserStocksRepository.delete({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id
+            }, { transaction: client });
+        } else {
+            await UserStocksRepository.update({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: newQuantity
+            }, { transaction: client });
+        }
+    }
+
+    /**
+     * 驗證交易數據
+     * @private
+     */
+    static async _validateTransactionData(transactionData) {
+        // 檢查用戶
+        if (!await userRepository.userExist(transactionData.user_id)) {
+            throw new Error(`用戶 ${transactionData.user_id} 不存在`);
+        }
+
+        // 檢查股票
+        const stocks = await stockRepository.get({
+            stock_symbol: transactionData.stock_symbol
+        });
+        if (stocks.rows.length === 0) {
+            throw new Error(`股票代碼 ${transactionData.stock_symbol} 不存在`);
+        }
+
+        return stocks.rows[0];
+    }
+
+    /**
+     * 驗證用戶持股
+     * @private
+     */
+    static async _validateUserHoldings(transactionData, client) {
+        const userStocks = await UserStocksRepository.get({
+            user_id: transactionData.user_id,
+            stock_id: transactionData.stock_id
+        }, { transaction: client });
+
+        if (!userStocks.rows.length || userStocks.rows[0].quantity < transactionData.quantity) {
+            throw new Error('持股不足');
+        }
+    }
+
+    /**
+     * 創建訂單
+     * @private
+     */
+    static async _createOrder(transactionData, orderSide, client) {
+        const order = OrderService.createOrder(transactionData)
+        const order_id = await OrderRepository.insert(order, { transaction: client });
+        return { ...order, order_id };
+    }
+
+    /**
+     * 處理交易撮合
+     * @private
+     */
+    static async _processTransaction(order, client) {
+        OrderBookService.addOrder(order);
+        return await this._matchOrders(order, client);
+    }
+
+    /**
+     * 更新買方持股
+     * @private
+     */
+    static async _updateBuyerHoldings(transactionData, transaction, client) {
+        const userStocks = await UserStocksRepository.get({
+            user_id: transactionData.user_id,
+            stock_id: transactionData.stock_id
+        }, { transaction: client });
+
+        if (userStocks.rows.length === 0) {
+            await UserStocksRepository.insert({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: transaction.quantity,
+                purchase_price: transaction.price
+            }, { transaction: client });
+        } else {
+            const currentHolding = userStocks.rows[0];
+            const newQuantity = currentHolding.quantity + transaction.quantity;
+            const newAvgPrice = (currentHolding.purchase_price * currentHolding.quantity + 
+                              transaction.price * transaction.quantity) / newQuantity;
+            
+            await UserStocksRepository.update({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: newQuantity,
+                purchase_price: newAvgPrice
+            }, { transaction: client });
+        }
+    }
+
+    /**
+     * 更新賣方持股
+     * @private
+     */
+    static async _updateSellerHoldings(transactionData, transaction, client) {
+        const currentHolding = await UserStocksRepository.get({
+            user_id: transactionData.user_id,
+            stock_id: transactionData.stock_id
+        }, { transaction: client });
+
+        const newQuantity = currentHolding.rows[0].quantity - transaction.quantity;
+        
+        if (newQuantity === 0) {
+            await UserStocksRepository.delete({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id
+            }, { transaction: client });
+        } else {
+            await UserStocksRepository.update({
+                user_id: transactionData.user_id,
+                stock_id: transactionData.stock_id,
+                quantity: newQuantity
+            }, { transaction: client });
+        }
+    }
+
+    /**
+     * 格式化交易結果
+     * @private
+     */
+    static _formatTransactionResult(order, result) {
+        return {
+            order_id: order.order_id,
+            stock_id: order.stock_id,
+            quantity: order.quantity,
+            price: order.price,
+            status: result.status,
+            message: result.message,
+            transactions: result.transactions
+        };
+    }
+
+    /**
+     * 撮合訂單
+     * @private
+     */
+    static async _matchOrders(order, client) {
+        const transactions = [];
+        
+        while (order.remaining_quantity > 0) {
+            const matchResult = await this._findMatchingOrder(order);
+            if (!matchResult) break;
+
+            const transaction = await this._executeTransaction(order, matchResult, client);
+            transactions.push(transaction);
         }
 
         return {
-            status: 'filled',
-            message: '訂單完全成交',
+            status: order.remaining_quantity === 0 ? 'filled' : 'partial',
+            message: order.remaining_quantity === 0 ? '訂單完全成交' : '部分成交',
             transactions
         };
+    }
+    static async _findMatchingOrder(order){
+        return OrderBookService.findMatchingOrder(order);
+    }
+    static async _executeTransaction(order, matchResult, client){
+        const transaction_quantity = Math.min(order.remaining_quantity, matchResult.remaining_quantity);
+        const transaction_price = order.order_side==="Buy"? matchResult.price : order.price;
+
+        const buy_order = order.side==="Buy"? order : matchResult;
+        const sell_order = order.side==="Sell"? order : matchResult;
+
+        const transaction_id = await TransactionsRepository.insert({
+            buy_order_id: buy_order.order_id,
+            sell_order_id: sell_order.order_id,
+            quantity: transaction_quantity,
+            price: transaction_price
+        }, { transaction: client });
+
+        return {
+            transation_id: transaction_id,
+            transaction_quantity: transaction_quantity,
+            transaction_price: transaction_price,
+            buy_order: buy_order,
+            sell_order: sell_order
+        }
     }
 }
 

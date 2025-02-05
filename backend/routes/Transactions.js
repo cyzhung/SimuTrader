@@ -15,7 +15,9 @@ router.post('/buy', authMiddleware, async (req, res) => {
             user_id: user_id,
             stock_symbol: stock_symbol,
             quantity: quantity,
-            price: price
+            price: price,
+            order_type: price? "Limit" : "Market",
+            order_side: "Buy"
         });
 
         res.status(201).json({
