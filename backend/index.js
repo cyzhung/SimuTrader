@@ -6,7 +6,6 @@ const userSrocksRoutes = require('./routes/Transactions');
 const ordersRoutes = require('./routes/Orders');
 const transactionsRoutes = require('./routes/Transactions');
 const Database = require('./database/Database');
-const pool = require('./database/utils/DatabaseConnection');
 const OrderService = require('./services/Order/OrderService');
 const OrderBookService = require('./services/OrderBook/OrderBookService');
 const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
@@ -14,7 +13,7 @@ const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderB
 async function initializeApp() {
     try {
         // 初始化數據庫連接
-        await Database.initialize(pool);
+        await Database.initialize();
         console.log('Database connection initialized successfully');
 
         // 初始化 OrderBook

@@ -97,6 +97,37 @@ class PriorityQueueOrderBook extends OrderBook_abs{
     getOrderQueues(stock_id){
         return this._getOrderQueues(stock_id);
     }
+
+    findMatchingOrder(order){
+        const { buyQueue, sellQueue } = this._getOrderQueues(order.stock_id);
+        if(order.order_type === "Market"){
+            return order.order_side==="Buy"? sellQueue.dequeue() : buyQueue.dequeue();;
+        }
+
+        if(order.order_side === "Buy"){
+            const top = sellQueue.getTop();
+            if(order.price>top.price)
+                return sellQueue.dequeue();
+        }else{
+            const top = buyQueue.geTop();
+            if(order.price<top.price)
+                return buyQueue.dequeue();
+        }
+    }
+
+    updateUserOrderState(order_id, transactionData){
+        const order = this.orderMap.get(order_id);
+        if(!order)
+            throw new Error('訂單不存在');
+
+        order.remaining_quantity -= transactionData.transaction_quantity;
+        if(order.remaining_quantity === 0){
+            order.status = "filled";
+        }
+        else if(order.remaining_quantity != order.quantity){
+            order.status = "partial";
+        }
+    }
 }
 
 module.exports = PriorityQueueOrderBook;
