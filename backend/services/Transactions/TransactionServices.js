@@ -7,6 +7,7 @@ const userRepository = require('../../repository/UserRepository');
 const stockRepository = require('../../repository/StockRepository');
 const UserStocksRepository = require('../../repository/UserStocksRepository');
 const UserRepository = require('../../repository/UserRepository');
+const { TransactionError, ValidationError, NotFoundError } = require('../../utils/Errors');
 
 class TransactionServices {
     /**
@@ -19,11 +20,11 @@ class TransactionServices {
         
         try {
             // 1. 基礎驗證
-            await this._validateTransactionData(transactionData);
-            
+            const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
             // 2. 創建訂單
+            transactionData.stock_id = stock_id;
             await client.query('SAVEPOINT order_creation');
-            const order = await this._createOrder(transactionData, 'Buy', client);
+            const order = await this._createOrder(transactionData,  client);
 
             try {
                 // 3. 進行撮合
@@ -45,6 +46,7 @@ class TransactionServices {
 
         } catch (error) {
             await client.rollback();
+            console.error(error)
             throw error;
         }
     }
@@ -59,15 +61,16 @@ class TransactionServices {
         
         try {
             // 1. 基礎驗證
-            await this._validateTransactionData(transactionData);
             
+            const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
+
             // 2. 檢查持股
             await this._validateUserHoldings(transactionData, client);
 
             // 3. 創建訂單
             await client.query('SAVEPOINT order_creation');
-            const order = await this._createOrder(transactionData, 'Sell', client);
-
+            transactionData.stock_id = stock_id;
+            const order = await this._createOrder(transactionData, client);
             try {
                 // 4. 進行撮合
                 const result = await this._processTransaction(order, client);
@@ -88,6 +91,7 @@ class TransactionServices {
 
         } catch (error) {
             await client.rollback();
+            console.error(error)
             throw error;
         }
     }
@@ -172,10 +176,10 @@ class TransactionServices {
      * 驗證交易數據
      * @private
      */
-    static async _validateTransactionData(transactionData) {
+    static async _validateTransactionDataAndGetStockID(transactionData) {
         // 檢查用戶
         if (!await userRepository.userExist(transactionData.user_id)) {
-            throw new Error(`用戶 ${transactionData.user_id} 不存在`);
+            throw new ValidationError(`用戶 ${transactionData.user_id} 不存在`);
         }
 
         // 檢查股票
@@ -183,10 +187,10 @@ class TransactionServices {
             stock_symbol: transactionData.stock_symbol
         });
         if (stocks.rows.length === 0) {
-            throw new Error(`股票代碼 ${transactionData.stock_symbol} 不存在`);
+            throw new ValidationError(`股票代碼 ${transactionData.stock_symbol} 不存在`);
         }
 
-        return stocks.rows[0];
+        return stocks.rows[0].stock_id;
     }
 
     /**
@@ -198,9 +202,9 @@ class TransactionServices {
             user_id: transactionData.user_id,
             stock_id: transactionData.stock_id
         }, { transaction: client });
-
+        
         if (!userStocks.rows.length || userStocks.rows[0].quantity < transactionData.quantity) {
-            throw new Error('持股不足');
+            throw new ValidationError('持股不足');
         }
     }
 
@@ -208,10 +212,10 @@ class TransactionServices {
      * 創建訂單
      * @private
      */
-    static async _createOrder(transactionData, orderSide, client) {
+    static async _createOrder(transactionData, client) {
         const order = OrderService.createOrder(transactionData)
         const order_id = await OrderRepository.insert(order, { transaction: client });
-        return { ...order, order_id };
+        return { ...order, order_id:order_id };
     }
 
     /**
@@ -221,80 +225,6 @@ class TransactionServices {
     static async _processTransaction(order, client) {
         OrderBookService.addOrder(order);
         return await this._matchOrders(order, client);
-    }
-
-    /**
-     * 更新買方持股
-     * @private
-     */
-    static async _updateBuyerHoldings(transactionData, transaction, client) {
-        const userStocks = await UserStocksRepository.get({
-            user_id: transactionData.user_id,
-            stock_id: transactionData.stock_id
-        }, { transaction: client });
-
-        if (userStocks.rows.length === 0) {
-            await UserStocksRepository.insert({
-                user_id: transactionData.user_id,
-                stock_id: transactionData.stock_id,
-                quantity: transaction.quantity,
-                purchase_price: transaction.price
-            }, { transaction: client });
-        } else {
-            const currentHolding = userStocks.rows[0];
-            const newQuantity = currentHolding.quantity + transaction.quantity;
-            const newAvgPrice = (currentHolding.purchase_price * currentHolding.quantity + 
-                              transaction.price * transaction.quantity) / newQuantity;
-            
-            await UserStocksRepository.update({
-                user_id: transactionData.user_id,
-                stock_id: transactionData.stock_id,
-                quantity: newQuantity,
-                purchase_price: newAvgPrice
-            }, { transaction: client });
-        }
-    }
-
-    /**
-     * 更新賣方持股
-     * @private
-     */
-    static async _updateSellerHoldings(transactionData, transaction, client) {
-        const currentHolding = await UserStocksRepository.get({
-            user_id: transactionData.user_id,
-            stock_id: transactionData.stock_id
-        }, { transaction: client });
-
-        const newQuantity = currentHolding.rows[0].quantity - transaction.quantity;
-        
-        if (newQuantity === 0) {
-            await UserStocksRepository.delete({
-                user_id: transactionData.user_id,
-                stock_id: transactionData.stock_id
-            }, { transaction: client });
-        } else {
-            await UserStocksRepository.update({
-                user_id: transactionData.user_id,
-                stock_id: transactionData.stock_id,
-                quantity: newQuantity
-            }, { transaction: client });
-        }
-    }
-
-    /**
-     * 格式化交易結果
-     * @private
-     */
-    static _formatTransactionResult(order, result) {
-        return {
-            order_id: order.order_id,
-            stock_id: order.stock_id,
-            quantity: order.quantity,
-            price: order.price,
-            status: result.status,
-            message: result.message,
-            transactions: result.transactions
-        };
     }
 
     /**
@@ -342,6 +272,22 @@ class TransactionServices {
             buy_order: buy_order,
             sell_order: sell_order
         }
+    }
+
+    /**
+     * 格式化交易結果
+     * @private
+     */
+    static _formatTransactionResult(order, result) {
+        return {
+            order_id: order.order_id,
+            stock_id: order.stock_id,
+            quantity: order.quantity,
+            price: order.price,
+            status: result.status,
+            message: result.message,
+            transactions: result.transactions
+        };
     }
 }
 

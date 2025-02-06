@@ -42,7 +42,7 @@ describe('交易相關 API 測試', () => {
                 });
 
             expect(response.status).toBe(201);
-            expect(response.body.message).toContain('successfully purchased');
+            expect(response.body.success).toBe(true);
         });
 
         it('購買不存在的股票應該失敗', async () => {
@@ -55,7 +55,7 @@ describe('交易相關 API 測試', () => {
                     price: 500
                 });
 
-            expect(response.status).toBe(404);
+            expect(response.status).toBe(400);
         });
     });
 

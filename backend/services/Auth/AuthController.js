@@ -1,4 +1,5 @@
 const AuthService = require('./AuthService');
+const { AuthenticationError } = require('../../utils/Errors');
 const { validateRequest } = require('../../middlewares/Validators');
 
 class AuthController {
@@ -37,16 +38,9 @@ class AuthController {
         } catch (error) {
             console.error('登入錯誤:', error);
             // 根據錯誤類型返回適當的狀態碼和信息
-            if (error.message === '帳號或密碼錯誤') {
-                return res.status(401).json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
-            return res.status(500).json({
+            return res.status(error.status || 500).json({
                 success: false,
-                message: '登入失敗，請稍後再試'
+                message: error.message
             });
         }
     }
@@ -84,16 +78,9 @@ class AuthController {
         } catch (error) {
             console.error('註冊錯誤:', error);
 
-            if (error.message === '該 Email 已被註冊') {
-                return res.status(409).json({
-                    success: false,
-                    message: error.message
-                });
-            }
-
-            return res.status(500).json({
+            return res.status(error.status || 500).json({
                 success: false,
-                message: '註冊失敗，請稍後再試'
+                message: error.message
             });
         }
     }
@@ -109,9 +96,9 @@ class AuthController {
             });
         } catch (error) {
             console.error('登出錯誤:', error);
-            return res.status(500).json({
+            return res.status(error.status || 500).json({
                 success: false,
-                message: '登出失敗，請稍後再試'
+                message: error.message
             });
         }
     }

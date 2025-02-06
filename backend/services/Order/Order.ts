@@ -19,7 +19,7 @@ export interface Order {
   export function validateOrder(order: Order): OrderValidationError[] {
     const errors: OrderValidationError[] = [];
   
-    // 必填字段檢查
+    // 檢查必填字段
     if (!order.user_id) errors.push({ field: 'user_id', message: '用戶ID不能為空' });
     if (!order.stock_id) errors.push({ field: 'stock_id', message: '股票id不能為空' });
     
@@ -39,13 +39,13 @@ export interface Order {
   }
   
   export function createOrder(order: Order): Order {
-    // 先验证订单
+    // 驗證訂單
     const validationErrors = validateOrder(order);
     if (validationErrors.length > 0) {
-      throw new Error(`订单验证失败: ${JSON.stringify(validationErrors)}`);
+      throw new Error(`訂單驗證失敗: ${JSON.stringify(validationErrors)}`);
     }
   
-    // 创建订单并返回
+    // 返回訂單
     return {
       ...order,
       timestamp: order.timestamp || Date.now(),

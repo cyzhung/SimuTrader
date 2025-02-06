@@ -6,7 +6,7 @@ class StockRepository extends RepositroyAbstract{
     static async get(filters={stock_symbol: null, stock_name: null, market_type: null}){
         const pool = Database.getPool();
         let query = 'SELECT * FROM stocks WHERE 1=1';
-        const values = [];
+        let values = [];
         let paramCount = 1;
         
         Object.entries(filters).forEach(([key, value]) => {
@@ -23,7 +23,7 @@ class StockRepository extends RepositroyAbstract{
             return result;
         }catch(error){
             console.error('Error getting stocks by filters:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 
@@ -38,7 +38,7 @@ class StockRepository extends RepositroyAbstract{
             return result.rows[0].stock_id;
         }catch(error){
             console.error('Error adding stock:', error);
-            throw error;
+            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
         }
     }
 
@@ -57,7 +57,7 @@ class StockRepository extends RepositroyAbstract{
             console.log('Stock updated successfully');
         }catch(error){
             console.error('Error updating stock:', error);
-            throw error;
+            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
         }
     }
 
@@ -70,7 +70,7 @@ class StockRepository extends RepositroyAbstract{
             console.log('Stock deleted successfully');
         }catch(error){
             console.error('Error deleting stock:', error);
-            throw error;
+            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
         }
     }
 
@@ -83,7 +83,7 @@ class StockRepository extends RepositroyAbstract{
             return result.rows.length > 0;
         }catch(error){
             console.error('Error checking if stock exists:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 }

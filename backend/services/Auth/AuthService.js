@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const UserRepository = require('../../repository/UserRepository');
 const JwtService = require('./JwtService');
-const { ValidationError } = require('../../utils/Errors');
+const { ValidationError, AuthenticationError } = require('../../utils/Errors');
 const Database = require('../../database/Database');
 class AuthService {
     static async login(email, password) {
@@ -38,7 +38,7 @@ class AuthService {
                 token: token
             };
         } catch (error) {
-            throw error;
+            throw new AuthenticationError(error.message);
         }
     }
 

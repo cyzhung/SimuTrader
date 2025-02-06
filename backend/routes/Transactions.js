@@ -5,28 +5,26 @@ const transactionServices = require('../services/Transactions/TransactionService
 
 
 const {authMiddleware} = require('../middlewares/AuthMiddleware');
+const e = require('express');
 
 router.post('/buy', authMiddleware, async (req, res) => {
-    const user_id = req.user.user_id;
-    const { stock_symbol, quantity, price } = req.body;
-
     try {
         const result = await transactionServices.createBuyTransaction({
-            user_id: user_id,
-            stock_symbol: stock_symbol,
-            quantity: quantity,
-            price: price,
-            order_type: price? "Limit" : "Market",
-            order_side: "Buy"
+            user_id: req.user.user_id,
+            stock_symbol: req.body.stock_symbol,
+            quantity: req.body.quantity,
+            price: req.body.price
         });
 
         res.status(201).json({
-            message: `User ${user_id} successfully purchased stock ${stock_symbol}`,
-            ...result
+            success: true,
+            message: `成功購買股票 ${req.body.stock_symbol}`,
+            data: result
         });
     } catch (error) {
+        // 使用錯誤類的 toJSON 方法
         console.error('Error during buy operation:', error.message);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        res.status(error.status || 500).json(error.toJSON());
     }
 });
 
@@ -34,27 +32,24 @@ router.post('/buy', authMiddleware, async (req, res) => {
 router.post('/sell', authMiddleware, async(req, res)=>{
 
     const user_id = req.user.user_id;
-    const { stock_symbol, quantity, transaction_date } = req.body;
+    const { stock_symbol, quantity, price } = req.body;
     try{
-        const checkUserSQL = `SELECT * FROM users WHERE user_id = $1`;
-        const existingUser = await pool.query(checkUserSQL, [user_id]);
-        if(existingUser.rows.length === 0)
-            return res.status(201).json({ message: `User ${user_id} doesn't exist`});
+        const result = await transactionServices.createSellTransaction({
+            user_id: user_id,
+            stock_symbol: stock_symbol,
+            quantity: quantity,
+            price: price,
+            order_side: "Sell",
+            order_type: price? "Limit" : "Market"
+        });
 
-        const getIDSQL = 'SELECT stock_id FROM stocks WHERE stock_symbol = $1';
-        const existingStock = await pool.query(getIDSQL, [stock_symbol]);
-        if(existingStock.rows.length === 0)
-            return res.status(201).json({ message: `stock_symbol ${stock_symbol} doesn't exist`});
-
-        const stock_id = existingStock.rows[0]['stock_id']
-
-        const sql = 'INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price, transaction_date) VALUES ($1, $2, $3, $4, $5)'; 
-
-        await pool.query(sql, [user_id, stock_id, quantity, price, transaction_date]);
-        res.status(201).json({ message: `User ${user_id} purchase ${stock_id}`, user_id: user_id, stock_id: stock_id, quantity: quantity, price: price, transaction_date: transaction_date});
+        res.status(201).json({
+            message: `User ${user_id} successfully sold stock ${stock_symbol}`,
+            ...result
+        });
     } catch (error){
         console.error('Error during sell operation:', error.message);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        res.status(error.status || 500).json({ message: 'Internal server error', error: error.message });
     }
 });
 

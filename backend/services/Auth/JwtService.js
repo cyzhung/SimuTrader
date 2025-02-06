@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const {AuthenticationError} = require('../../utils/Errors');
 dotenv.config();
 
 class JwtService {
@@ -10,7 +11,7 @@ class JwtService {
     static #REFRESH_TOKEN_EXPIRES_IN = '7d'; // 刷新令牌過期時間
 
     /**
-     * 生成訪問令牌
+    * 生成訪問令牌
      * @param {Object} payload - 要加入到令牌中的數據
      * @returns {string} 訪問令牌
      */
@@ -20,7 +21,7 @@ class JwtService {
                 expiresIn: this.#ACCESS_TOKEN_EXPIRES_IN
             });
         } catch (error) {
-            throw new Error('生成訪問令牌失敗');
+            throw new AuthenticationError('生成訪問令牌失敗');
         }
     }
 
@@ -35,7 +36,7 @@ class JwtService {
                 expiresIn: this.#REFRESH_TOKEN_EXPIRES_IN
             });
         } catch (error) {
-            throw new Error('生成刷新令牌失敗');
+            throw new AuthenticationError('生成刷新令牌失敗');
         }
     }
 
@@ -49,9 +50,9 @@ class JwtService {
             return jwt.verify(token, this.#ACCESS_TOKEN_SECRET);
         } catch (error) {
             if (error instanceof jwt.TokenExpiredError) {
-                throw new Error('令牌已過期');
+                throw new AuthenticationError('令牌已過期');
             }
-            throw new Error('無效的令牌');
+            throw new AuthenticationError('無效的令牌');
         }
     }
 
@@ -65,9 +66,9 @@ class JwtService {
             return jwt.verify(refreshToken, this.#REFRESH_TOKEN_SECRET);
         } catch (error) {
             if (error instanceof jwt.TokenExpiredError) {
-                throw new Error('刷新令牌已過期');
+                throw new AuthenticationError('刷新令牌已過期');
             }
-            throw new Error('無效的刷新令牌');
+            throw new AuthenticationError('無效的刷新令牌');
         }
     }
 

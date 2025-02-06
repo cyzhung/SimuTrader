@@ -1,6 +1,7 @@
 const PriorityQueueOrderBook = require('./PriorityQueueOrderBook');
 const DatabaseOrderBook = require('./DatabaseOrderBook');
 const dotenv = require('dotenv');
+const {OrderError} = require('../../utils/Errors');
 dotenv.config();
 
 class OrderBookService {
@@ -22,7 +23,7 @@ class OrderBookService {
             }
             await this.orderBook.addOrder(order);
         } catch (error) {
-            throw new Error(`訂單處理失敗: ${error.message}`);
+            throw new OrderError(`訂單處理失敗: ${error.message}`);
         }
     }
 
@@ -33,7 +34,7 @@ class OrderBookService {
             }
             await this.orderBook.removeOrder(order_id);
         } catch (error) {
-            throw new Error(`訂單處理失敗: ${error.message}`);
+            throw new OrderError(`訂單處理失敗: ${error.message}`);
         }
     }
 
@@ -44,21 +45,21 @@ class OrderBookService {
 
     static getBestAskPrice() {
         if (!this.orderBook) {
-            throw new Error('OrderBook 未初始化');
+            throw new OrderError('OrderBook 未初始化');
         }
         return this.orderBook.getLowestSellPrice();
     }
 
     static getBestBidPrice() {
         if (!this.orderBook) {
-            throw new Error('OrderBook 未初始化');
+            throw new OrderError('OrderBook 未初始化');
         }
         return this.orderBook.getHighestBuyPrice();
     }
 
     static getOrderBook() {
         if (!this.orderBook) {
-            throw new Error('OrderBook 未初始化');
+            throw new OrderError('OrderBook 未初始化');
         }
         return this.orderBook;
     }

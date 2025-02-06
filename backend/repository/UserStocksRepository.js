@@ -12,7 +12,7 @@ class UserStocksRepository extends RepositroyAbstract{
             return result.rows[0].user_stock_id;
         }catch(error){
             console.error('Error adding user stock:', error);
-            throw error;
+            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
         }
     }
 
@@ -25,8 +25,8 @@ class UserStocksRepository extends RepositroyAbstract{
         let query = `
             SELECT * FROM user_stocks WHERE 1=1
         `;
-        const values = [];
-        const paramsCount = 1;
+        let values = [];
+        let paramsCount = 1;
 
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== null && value !== undefined) {
@@ -41,7 +41,7 @@ class UserStocksRepository extends RepositroyAbstract{
             return result;
         }catch(error){
             console.error('Error getting user stocks:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 
@@ -55,7 +55,7 @@ class UserStocksRepository extends RepositroyAbstract{
             await pool.query(query, values);
         }catch(error){
             console.error('Error updating user stock:', error);
-            throw error;
+            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
         }
     }
 }

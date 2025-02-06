@@ -19,9 +19,8 @@ class UserRepository extends RepositroyAbstract {
     static async get({ filters = {}, transaction = null }) {
         const pool = transaction || Database.getPool();
         let query = 'SELECT * FROM users WHERE 1=1';
-        const values = [];
+        let values = [];
         let paramCount = 1;
-
         // 動態添加過濾條件
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== null && value !== undefined) {
@@ -30,12 +29,12 @@ class UserRepository extends RepositroyAbstract {
                 paramCount++;
             }
         });
-
+        
         try {
             return await pool.query(query, values);
         } catch (error) {
             console.error('Error getting user:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 
@@ -53,7 +52,7 @@ class UserRepository extends RepositroyAbstract {
             return result.rows[0];
         } catch (error) {
             console.error('Error adding user:', error);
-            throw error;
+            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
         }
     }
 
@@ -65,7 +64,7 @@ class UserRepository extends RepositroyAbstract {
             await pool.query(query, values);
         } catch (error) {
             console.error('Error deleting user:', error);
-            throw error;
+            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
         }
     }
 
@@ -77,7 +76,7 @@ class UserRepository extends RepositroyAbstract {
             await pool.query(query, values);
         } catch (error) {
             console.error('Error updating user:', error);
-            throw error;
+            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
         }
     }
 }

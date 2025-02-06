@@ -13,7 +13,7 @@ router.get('/search', authMiddleware, async (req, res) => {
         res.status(200).json({ message: orders });
     }catch(error){
         console.error('Error during search operation:', error.message);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        res.status(error.status || 500 ).json({ message: 'Internal server error', error: error.message });
     }
 });
 

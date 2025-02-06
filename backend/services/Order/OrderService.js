@@ -1,4 +1,5 @@
 const OrderRepository = require('../../repository/OrderRepository');
+const {NotFoundError, ForbiddenError, ValidationError, OrderError} = require('../../utils/Errors');
 const Order = require('./Order');
 
 class OrderService {
@@ -7,7 +8,7 @@ class OrderService {
             const order = Order.createOrder(orderData);
             return order;
         } catch (error) {
-            throw new Error(`創建訂單失敗: ${error.message}`);
+            throw new OrderError(`創建訂單失敗: ${error.message}`);
         }
     }
     static async cancelOrder(order_id, user_id) {
@@ -15,17 +16,17 @@ class OrderService {
             // 1. 檢查訂單是否存在且屬於該用戶
             const orderResult = await OrderRepository.get({ order_id });
             if (!orderResult.rows.length) {
-                throw new Error('訂單不存在');
+                throw new NotFoundError('訂單不存在');
             }
 
             const order = orderResult.rows[0];
             if (order.user_id !== user_id) {
-                throw new Error('無權限取消此訂單');
+                throw new ForbiddenError('無權限取消此訂單');
             }
 
             // 2. 檢查訂單是否可以取消
             if (order.status !== 'pending' && order.status !== 'partial') {
-                throw new Error('訂單狀態不允許取消');
+                throw new ValidationError('訂單狀態不允許取消');
             }
 
             // 3. 從 OrderBook 中移除訂單
@@ -40,7 +41,7 @@ class OrderService {
             return true;
 
         } catch (error) {
-            throw new Error(`取消訂單失敗: ${error.message}`);
+            throw new OrderError(`取消訂單失敗: ${error.message}`);
         }
     }
 
@@ -48,12 +49,12 @@ class OrderService {
         try {
             const orderResult = await OrderRepository.get({ order_id });
             if (!orderResult.rows.length) {
-                throw new Error('訂單不存在');
+                throw new NotFoundError('訂單不存在');
             }
 
             const order = orderResult.rows[0];
             if (order.user_id !== user_id) {
-                throw new Error('無權限查看此訂單');
+                throw new ForbiddenError('無權限查看此訂單');
             }
 
             return {
@@ -66,7 +67,7 @@ class OrderService {
             };
 
         } catch (error) {
-            throw new Error(`獲取訂單狀態失敗: ${error.message}`);
+            throw new OrderError(`獲取訂單狀態失敗: ${error.message}`);
         }
     }
 
