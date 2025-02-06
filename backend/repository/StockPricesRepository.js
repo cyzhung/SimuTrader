@@ -11,14 +11,13 @@ class StockPricesRepository extends RepositroyAbstract{
             const result = await pool.query(query, values);
             return result.rows[0].price_id;
         }catch(error){
-            console.error('Error adding stock price:', error);
-            throw error;
+            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
         }
     }
     static async get({ filters = {}, transaction = null } = {}) {
         const pool = transaction || Database.getPool();
         let query = `SELECT * FROM stock_prices WHERE 1=1`;
-        const values = [];
+        let values = [];
         let paramCount = 1;
 
         // 定義特殊處理的過濾條件
@@ -57,7 +56,7 @@ class StockPricesRepository extends RepositroyAbstract{
             return result;
         } catch (error) {
             console.error('Error getting stock prices:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 
@@ -69,7 +68,7 @@ class StockPricesRepository extends RepositroyAbstract{
             await pool.query(query, values);
         }catch(error){
             console.error('Error deleting stock price:', error);
-            throw error;
+            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
         }
     }
 }

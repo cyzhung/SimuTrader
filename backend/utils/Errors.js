@@ -52,9 +52,97 @@ class NotFoundError extends Error {
     }
 }
 
+// 新增的錯誤類型
+class DatabaseError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DatabaseError';
+        this.status = 500;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+class TransactionError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'TransactionError';
+        this.status = 500;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+class OrderBookError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'OrderBookError';
+        this.status = 500;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+class StockError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'StockError';
+        this.status = 400;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+class ForbiddenError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ForbiddenError';
+        this.status = 403;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+class OrderError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'OrderError';
+        this.status = 400;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+// 統一的 toJSON 方法
+const errorToJSON = function() {
+    return {
+        success: false,
+        error: {
+            name: this.name,
+            message: this.message,
+            status: this.status
+        }
+    };
+};
+
+// 為所有錯誤類添加 toJSON 方法
+[
+    ValidationError,
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    DatabaseError,
+    TransactionError,
+    OrderBookError,
+    StockError,
+    ForbiddenError,
+    OrderError
+].forEach(errorClass => {
+    errorClass.prototype.toJSON = errorToJSON;
+});
+
 module.exports = {
     ValidationError,
     AuthenticationError,
     AuthorizationError,
-    NotFoundError
+    NotFoundError,
+    DatabaseError,
+    TransactionError,
+    OrderBookError,
+    StockError,
+    ForbiddenError,
+    OrderError
 };

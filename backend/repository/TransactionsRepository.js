@@ -19,7 +19,7 @@ class TransactionsRepository extends RepositroyAbstract{
             return result.rows[0].transaction_id;
         }catch(error){
             console.error('Error adding transaction:', error);
-            throw error;
+            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
         }
     }
 
@@ -29,8 +29,8 @@ class TransactionsRepository extends RepositroyAbstract{
         }
 
         const pool = Database.getPool();
-        const query = `SELECT * FROM transactions WHERE 1=1`;
-        const values = [];
+        let query = `SELECT * FROM transactions WHERE 1=1`;
+        let values = [];
         let paramCount = 1;
 
         Object.entries(filters).forEach(([key, value]) => {
@@ -46,7 +46,7 @@ class TransactionsRepository extends RepositroyAbstract{
             return result;
         }catch(error){
             console.error('Error getting transactions by user_id:', error);
-            throw error;
+            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
         }
     }
 

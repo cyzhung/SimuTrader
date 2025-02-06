@@ -3,7 +3,7 @@ const OrderBook_abs = require('./OrderBookFactory');
 const priorityQueue = require('../../utils/PriorityQueue')
 const OrderService = require('../Order/OrderService');
 const OrderRepository = require('../../repository/OrderRepository');
-
+const {OrderError} = require('../../utils/Errors');
 class PriorityQueueOrderBook extends OrderBook_abs{
     constructor(){
         super();

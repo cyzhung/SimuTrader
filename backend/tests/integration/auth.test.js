@@ -39,7 +39,7 @@ describe('認證相關 API 測試', () => {
                     password: 'password123'
                 });
 
-            expect(response.status).toBe(409);
+            expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
         });
     });

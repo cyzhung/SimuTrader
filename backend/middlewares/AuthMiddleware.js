@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { AuthenticationError } = require('../utils/Errors');
 
 const authMiddleware = async (req, res, next) => {
     try {
@@ -6,7 +7,7 @@ const authMiddleware = async (req, res, next) => {
 
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
-            return res.status(401).json({ message: '未提供認證令牌' });
+            throw new AuthenticationError('未提供認證令牌');
         }
 
         const token = authHeader.split(' ')[1]; // Bearer <token>
@@ -22,10 +23,7 @@ const authMiddleware = async (req, res, next) => {
         
         next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: '認證令牌已過期' });
-        }
-        return res.status(401).json({ message: '無效的認證令牌' });
+        res.status(error.status || 401).json(error.toJSON());
     }
 };
 
