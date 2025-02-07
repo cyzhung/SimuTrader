@@ -2,33 +2,32 @@ const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../database/Database');
 
 class TransactionsRepository extends RepositroyAbstract{
-    static async insert(transaction){
-        const pool = Database.getPool();
-        console.log(transaction)
+    static async insert(data, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = `INSERT INTO transactions (buy_order_id, sell_order_id, quantity, price, transaction_date) 
                         VALUES ($1, $2, $3, $4, $5)
                         RETURNING transaction_id`;
         const values = [
-            transaction.buy_order_id,
-            transaction.sell_order_id,
-            transaction.quantity,
-            transaction.price,
-            transaction.transaction_date];
+            data.buy_order_id,
+            data.sell_order_id,
+            data.quantity,
+            data.price,
+            data.transaction_date];
         try{
             const result = await pool.query(query, values);
             return result.rows[0].transaction_id;
         }catch(error){
             console.error('Error adding transaction:', error);
-            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
+            throw new DatabaseError(`交易資料庫新增錯誤: ${error.message}`);
         }
     }
 
-    static async get(filters={user_id: null, stock_id: null}){
+    static async get(filters={user_id: null, stock_id: null}, { transaction } = {}){
         if(!filters.user_id){
             throw new Error('User ID is required');
         }
 
-        const pool = Database.getPool();
+        const pool = transaction || Database.getPool();
         let query = `SELECT * FROM transactions WHERE 1=1`;
         let values = [];
         let paramCount = 1;
@@ -46,7 +45,7 @@ class TransactionsRepository extends RepositroyAbstract{
             return result;
         }catch(error){
             console.error('Error getting transactions by user_id:', error);
-            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`交易資料庫查詢錯誤: ${error.message}`);
         }
     }
 

@@ -23,21 +23,26 @@ class TransactionServices {
             const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
             // 2. 創建訂單
             transactionData.stock_id = stock_id;
+
             await client.query('SAVEPOINT order_creation');
             const order = await this._createOrder(transactionData,  client);
 
             try {
                 // 3. 進行撮合
                 const result = await this._processTransaction(order, client);
-
+                
                 // 4. 更新用戶持股
                 if (result.transactions.length > 0) {
                     await this._updateUserHoldings(result.transactions, client);
                 }
 
+                const transactionInfo = this._computeTransactionsInfo(result.transactions);
+
+                this._updateOrderState(order, transactionInfo)
+
                 // 5. 提交事務
                 await client.commit();
-                return this._formatTransactionResult(order, result);
+                return this._formatTransactionResult(order, transactionInfo, result);
 
             } catch (error) {
                 await client.query('ROLLBACK TO SAVEPOINT order_creation');
@@ -213,6 +218,7 @@ class TransactionServices {
      * @private
      */
     static async _createOrder(transactionData, client) {
+        
         const order = OrderService.createOrder(transactionData)
         const order_id = await OrderRepository.insert(order, { transaction: client });
         return { ...order, order_id:order_id };
@@ -254,6 +260,7 @@ class TransactionServices {
     static async _executeTransaction(order, matchResult, client){
         const transaction_quantity = Math.min(order.remaining_quantity, matchResult.remaining_quantity);
         const transaction_price = order.order_side==="Buy"? matchResult.price : order.price;
+        order.remaining_quantity -= transaction_quantity;
 
         const buy_order = order.side==="Buy"? order : matchResult;
         const sell_order = order.side==="Sell"? order : matchResult;
@@ -273,20 +280,46 @@ class TransactionServices {
             sell_order: sell_order
         }
     }
+    static async _computeTransactionsInfo(transactions){
+        let avgPrice = 0;
+        let quantity = 0;
+        for(const transaction of transactions){
+            avgPrice += transaction.transaction_price;
+            quantity += transaction.transaction_quantity;
+        }
 
+        return {
+            totalQuantity: quantity,
+            avgPrice: avgPrice
+        }
+    }
+    static async _updateOrderState(order, transactionInfo){
+        if(order.order_type === "Market"){
+            const beforeQuantity = (order.quantity - order.remaining_quantity);
+            const totalQuantity = beforeQuantity + transactionInfo.totalQuantit;
+            const beforePrice = order.price * beforeQuantity;
+            const transactionPrice = transactionInfo.avgPrice * transactionInfo.totalQuantity;
+            order.price = (beforePrice + transactionPrice) / totalQuantity;
+
+            OrderRepository.update({
+                order_id: order.order_id,
+                price: order.price,
+                remaining_quantity: order.remaining_quantity
+            })
+        }
+    }
     /**
      * 格式化交易結果
      * @private
      */
-    static _formatTransactionResult(order, result) {
+    static _formatTransactionResult(order, transactionInfo, result) {
         return {
             order_id: order.order_id,
             stock_id: order.stock_id,
-            quantity: order.quantity,
-            price: order.price,
+            quantity: transactionInfo.totalQuantity,
+            price: transactionInfo.avgPrice,
             status: result.status,
-            message: result.message,
-            transactions: result.transactions
+            message: result.message
         };
     }
 }

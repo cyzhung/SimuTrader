@@ -4,17 +4,20 @@ const { AuthenticationError } = require('../utils/Errors');
 const authMiddleware = async (req, res, next) => {
     try {
         // 從 header 獲取 token
-
+        
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
             throw new AuthenticationError('未提供認證令牌');
         }
-
+        
         const token = authHeader.split(' ')[1]; // Bearer <token>
 
+        if (token === "null") {
+            throw new AuthenticationError('未提供認證令牌');
+        }
         // 驗證 token
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
-
+        
         // 將解碼後的用戶信息添加到 request 對象中
         req.user = {
             user_id: decoded.user_id,
