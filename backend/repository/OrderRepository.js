@@ -1,5 +1,5 @@
 const Database = require('../database/Database');
-const { DatabaseError, NotFoundError } = require('../utils/Errors');
+const { DatabaseError, NotFoundError, ValidationError } = require('../utils/Errors');
 const RepositroyAbstract = require('./RepositoryFactory');
 
 class OrderRepository extends RepositroyAbstract{
@@ -31,7 +31,7 @@ class OrderRepository extends RepositroyAbstract{
             return result.rows[0].order_id;
         }catch(error){
             console.error('Error adding order:', error);
-            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
+            throw new DatabaseError(`訂單資料庫新增錯誤: ${error.message}`);
         }
     }
 
@@ -43,11 +43,11 @@ class OrderRepository extends RepositroyAbstract{
             await pool.query(query, values);
         }catch(error){
             console.error('Error deleting order:', error);
-            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
+            throw new DatabaseError(`訂單資料庫刪除錯誤: ${error.message}`);
         }
     }
 
-    static async update(order_id, updates, { transaction } = {}) {
+    static async update(data, { transaction } = {}) {
         const pool = transaction || Database.getPool();
         const query = `
             UPDATE orders 
@@ -58,17 +58,17 @@ class OrderRepository extends RepositroyAbstract{
             RETURNING *`;
             
         const values = [
-            updates.price, 
-            updates.remaining_quantity,
-            updates.status,
-            order_id
+            data.price, 
+            data.remaining_quantity,
+            data.status,
+            data.order_id
         ];
         try{
             const result = await pool.query(query, values);
             return result.rows[0];
         }catch(error){
             console.error('Error updating order:', error);
-            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
+            throw new DatabaseError(`訂單資料庫更新錯誤: ${error.message}`);
         }
     }
 
@@ -93,7 +93,7 @@ class OrderRepository extends RepositroyAbstract{
             return result;
         } catch(error) {
             console.error('Error getting orders:', error);
-            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`訂單資料庫查詢錯誤: ${error.message}`);
         }
     }
 }

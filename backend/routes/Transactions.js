@@ -1,24 +1,25 @@
 const express = require('express');
 const router = express.Router();
-
 const transactionServices = require('../services/Transactions/TransactionServices');
-
-
-const {authMiddleware} = require('../middlewares/AuthMiddleware');
-const e = require('express');
+const { authMiddleware } = require('../middlewares/AuthMiddleware');
 
 router.post('/buy', authMiddleware, async (req, res) => {
     try {
+        const user_id = req.user.user_id;
+        const { stock_symbol, quantity, price} = req.body;
+ 
         const result = await transactionServices.createBuyTransaction({
-            user_id: req.user.user_id,
-            stock_symbol: req.body.stock_symbol,
-            quantity: req.body.quantity,
-            price: req.body.price
+            user_id: user_id,
+            stock_symbol: stock_symbol,
+            quantity: quantity,
+            price: price,
+            order_side: "Buy",
+            order_type: price? "Limit":"Market"
         });
 
         res.status(201).json({
             success: true,
-            message: `成功購買股票 ${req.body.stock_symbol}`,
+            message: `成功建立買單 ${req.body.stock_symbol}`,
             data: result
         });
     } catch (error) {
@@ -44,8 +45,9 @@ router.post('/sell', authMiddleware, async(req, res)=>{
         });
 
         res.status(201).json({
-            message: `User ${user_id} successfully sold stock ${stock_symbol}`,
-            ...result
+            success: true,
+            message: `成功建立賣單 ${req.body.stock_symbol}`,
+            data: result
         });
     } catch (error){
         console.error('Error during sell operation:', error.message);

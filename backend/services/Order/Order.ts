@@ -24,7 +24,7 @@ export interface Order {
     if (!order.stock_id) errors.push({ field: 'stock_id', message: '股票id不能為空' });
     
     // 數值檢查
-    if (order.price <= 0) errors.push({ field: 'price', message: '價格必須大於0' });
+    if (order.price < 0) errors.push({ field: 'price', message: '價格必須大於0' });
     if (order.quantity <= 0) errors.push({ field: 'quantity', message: '數量必須大於0' });
     
     // 枚舉值檢查

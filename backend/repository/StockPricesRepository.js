@@ -1,8 +1,8 @@
 const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../Database');
 class StockPricesRepository extends RepositroyAbstract{
-    static async insert(stock_price){
-        const pool = Database.getPool();
+    static async insert(stock_price, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = `INSERT INTO stock_prices (stock_id, price_date, open_price, close_price, high_price, low_price, volume) 
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
                         RETURNING price_id`;
@@ -11,10 +11,10 @@ class StockPricesRepository extends RepositroyAbstract{
             const result = await pool.query(query, values);
             return result.rows[0].price_id;
         }catch(error){
-            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
+            throw new DatabaseError(`股票資料庫新增錯誤: ${error.message}`);
         }
     }
-    static async get({ filters = {}, transaction = null } = {}) {
+    static async get( filters = {}, {transaction = null } = {}) {
         const pool = transaction || Database.getPool();
         let query = `SELECT * FROM stock_prices WHERE 1=1`;
         let values = [];
@@ -56,19 +56,19 @@ class StockPricesRepository extends RepositroyAbstract{
             return result;
         } catch (error) {
             console.error('Error getting stock prices:', error);
-            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`股票資料庫查詢錯誤: ${error.message}`);
         }
     }
 
-    static async delete(id){
-        const pool = Database.getPool();
+    static async delete(id, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = `DELETE FROM stock_prices WHERE price_id = $1`;
         const values = [id];
         try{
             await pool.query(query, values);
         }catch(error){
             console.error('Error deleting stock price:', error);
-            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
+            throw new DatabaseError(`股票資料庫刪除錯誤: ${error.message}`);
         }
     }
 }

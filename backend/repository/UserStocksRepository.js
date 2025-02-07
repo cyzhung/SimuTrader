@@ -1,8 +1,8 @@
 const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../database/Database');
 class UserStocksRepository extends RepositroyAbstract{
-    static async insert(user_stock){
-        const pool = Database.getPool();
+    static async insert(user_stock, { transaction } = {}){
+        const pool = transaction || Database.getPool();
         const query = `INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price) 
                         VALUES ($1, $2, $3, $4) RETURNING user_stock_id`;
         const values = [user_stock.user_id, user_stock.stock_id, user_stock.quantity, user_stock.purchase_price];
@@ -12,16 +12,16 @@ class UserStocksRepository extends RepositroyAbstract{
             return result.rows[0].user_stock_id;
         }catch(error){
             console.error('Error adding user stock:', error);
-            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶持股資料庫新增錯誤: ${error.message}`);
         }
     }
 
-    static async get(filters={user_id: null, stock_id: null}) {
+    static async get(filters={user_id: null, stock_id: null}, { transaction } = {}) {
         if(!filters.user_id){
             throw new Error('User ID is required');
         }
 
-        const pool = Database.getPool();
+        const pool = transaction || Database.getPool();
         let query = `
             SELECT * FROM user_stocks WHERE 1=1
         `;
@@ -41,12 +41,12 @@ class UserStocksRepository extends RepositroyAbstract{
             return result;
         }catch(error){
             console.error('Error getting user stocks:', error);
-            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶持股資料庫查詢錯誤: ${error.message}`);
         }
     }
 
-    static async update(user_id, data){
-        const pool = Database.getPool();
+    static async update(data, { transaction } = {} ){
+        const pool = transaction || Database.getPool();
         const query = `
             UPDATE user_stocks SET quantity = $1, purchase_price = $2 WHERE user_id = $3 AND stock_id = $4
         `;
@@ -55,7 +55,7 @@ class UserStocksRepository extends RepositroyAbstract{
             await pool.query(query, values);
         }catch(error){
             console.error('Error updating user stock:', error);
-            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶持股資料庫更新錯誤: ${error.message}`);
         }
     }
 }

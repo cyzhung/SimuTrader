@@ -3,8 +3,8 @@ const Database = require('../database/Database');
 
 class UserRepository extends RepositroyAbstract {
 
-    static async userExist(user_id) {
-        const pool = Database.getPool();
+    static async userExist(user_id, { transaction } = {}) {
+        const pool = transaction || Database.getPool();
         const query = 'SELECT * FROM users WHERE user_id = $1';
         const values = [user_id];
         try {
@@ -16,7 +16,7 @@ class UserRepository extends RepositroyAbstract {
         }
     }
 
-    static async get({ filters = {}, transaction = null }) {
+    static async get( {filters} = {}, { transaction } = {}) {
         const pool = transaction || Database.getPool();
         let query = 'SELECT * FROM users WHERE 1=1';
         let values = [];
@@ -34,11 +34,11 @@ class UserRepository extends RepositroyAbstract {
             return await pool.query(query, values);
         } catch (error) {
             console.error('Error getting user:', error);
-            throw new DatabaseError(`數據庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶資料庫查詢錯誤: ${error.message}`);
         }
     }
 
-    static async insert(user, { transaction = null } = {}) {
+    static async insert(user, { transaction } = {}) {
         const pool = transaction || Database.getPool();
         const query = `
             INSERT INTO users (username, email, password_hash, role) 
@@ -52,31 +52,31 @@ class UserRepository extends RepositroyAbstract {
             return result.rows[0];
         } catch (error) {
             console.error('Error adding user:', error);
-            throw new DatabaseError(`數據庫新增錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶資料庫新增錯誤: ${error.message}`);
         }
     }
 
-    static async delete(user_id) {
-        const pool = Database.getPool();
+    static async delete(user_id, { transaction } = {}) {
+        const pool = transaction || Database.getPool();
         const query = 'DELETE FROM users WHERE user_id = $1';
         const values = [user_id];
         try {
             await pool.query(query, values);
         } catch (error) {
             console.error('Error deleting user:', error);
-            throw new DatabaseError(`數據庫刪除錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶資料庫刪除錯誤: ${error.message}`);
         }
     }
 
-    static async update(id, data) {
-        const pool = Database.getPool();
+    static async update(data, { transaction } = {}) {
+        const pool = transaction || Database.getPool();
         const query = `UPDATE users SET username = $1, email = $2 WHERE user_id = $3`;
-        const values = [data.username, data.email, id];
+        const values = [data.username, data.email, data.user_id];
         try {
             await pool.query(query, values);
         } catch (error) {
             console.error('Error updating user:', error);
-            throw new DatabaseError(`數據庫更新錯誤: ${error.message}`);
+            throw new DatabaseError(`用戶資料庫更新錯誤: ${error.message}`);
         }
     }
 }
