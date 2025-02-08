@@ -12,9 +12,9 @@ router.post('/buy', authMiddleware, async (req, res) => {
             user_id: user_id,
             stock_symbol: stock_symbol,
             quantity: quantity,
-            price: price,
+            price: price?price:Number.MAX_VALUE,
             order_side: "Buy",
-            order_type: price? "Limit":"Market"
+            order_type: price? "Market":"Limit"
         });
 
         res.status(201).json({
@@ -39,9 +39,9 @@ router.post('/sell', authMiddleware, async(req, res)=>{
             user_id: user_id,
             stock_symbol: stock_symbol,
             quantity: quantity,
-            price: price,
+            price: price?price:Number.MIN_VALUE,
             order_side: "Sell",
-            order_type: price? "Limit" : "Market"
+            order_type: price? "Market":"Limit"
         });
 
         res.status(201).json({

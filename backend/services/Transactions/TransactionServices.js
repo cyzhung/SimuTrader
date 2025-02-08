@@ -21,36 +21,29 @@ class TransactionServices {
         try {
             // 1. 基礎驗證
             const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
+
             // 2. 創建訂單
             transactionData.stock_id = stock_id;
 
-            await client.query('SAVEPOINT order_creation');
             const order = await this._createOrder(transactionData,  client);
 
-            try {
-                // 3. 進行撮合
-                const result = await this._processTransaction(order, client);
-                
-                // 4. 更新用戶持股
-                if (result.transactions.length > 0) {
-                    await this._updateUserHoldings(result.transactions, client);
-                }
-
-                const transactionInfo = this._computeTransactionsInfo(result.transactions);
-
-                this._updateOrderState(order, transactionInfo)
-
-                // 5. 提交事務
-                await client.commit();
-                return this._formatTransactionResult(order, transactionInfo, result);
-
-            } catch (error) {
-                await client.query('ROLLBACK TO SAVEPOINT order_creation');
-                throw error;
+            // 3. 進行撮合
+            const result = await this._processTransaction(order, client);
+            // 4. 更新用戶持股
+            if (result.transactions.length > 0) {
+                await this._updateUserHoldings(result.transactions, client);
             }
 
+            const transactionInfo = this._computeTransactionsInfo(result.transactions);
+
+            this._updateOrderState(order, transactionInfo)
+
+            // 5. 提交事務
+            await client.commit();
+            return this._formatTransactionResult(order, transactionInfo, result);
+
         } catch (error) {
-            await client.rollback();
+            await client.rollback()
             console.error(error)
             throw error;
         }
@@ -66,33 +59,24 @@ class TransactionServices {
         
         try {
             // 1. 基礎驗證
-            
             const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
 
             // 2. 檢查持股
             await this._validateUserHoldings(transactionData, client);
-
             // 3. 創建訂單
-            await client.query('SAVEPOINT order_creation');
             transactionData.stock_id = stock_id;
             const order = await this._createOrder(transactionData, client);
-            try {
-                // 4. 進行撮合
-                const result = await this._processTransaction(order, client);
 
-                // 5. 更新用戶持股
-                if (result.transactions.length > 0) {
-                    await this._updateUserHoldings(transactionData, result.transactions, client);
-                }
-
-                // 6. 提交事務
-                await client.commit();
-                return this._formatTransactionResult(order, result);
-
-            } catch (error) {
-                await client.query('ROLLBACK TO SAVEPOINT order_creation');
-                throw error;
+            // 4. 進行撮合
+            const result = await this._processTransaction(order, client);
+            // 5. 更新用戶持股
+            if (result.transactions.length > 0) {
+                await this._updateUserHoldings(transactionData, result.transactions, client);
             }
+
+            // 6. 提交事務
+            await client.commit();
+            return this._formatTransactionResult(order, result);
 
         } catch (error) {
             await client.rollback();
@@ -239,7 +223,6 @@ class TransactionServices {
      */
     static async _matchOrders(order, client) {
         const transactions = [];
-        
         while (order.remaining_quantity > 0) {
             const matchResult = await this._findMatchingOrder(order);
             if (!matchResult) break;
@@ -259,7 +242,7 @@ class TransactionServices {
     }
     static async _executeTransaction(order, matchResult, client){
         const transaction_quantity = Math.min(order.remaining_quantity, matchResult.remaining_quantity);
-        const transaction_price = order.order_side==="Buy"? matchResult.price : order.price;
+        const transaction_price = order.order_type==="Market"?matchResult.price:Math.min(matchResult.price,order.price);
         order.remaining_quantity -= transaction_quantity;
 
         const buy_order = order.side==="Buy"? order : matchResult;

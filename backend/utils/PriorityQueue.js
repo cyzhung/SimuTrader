@@ -1,3 +1,5 @@
+const { OrderBookError } = require('./Errors');
+
 class PriorityQueue {
     constructor(isMinheap = true){
         this.comparator = isMinheap
@@ -8,20 +10,20 @@ class PriorityQueue {
 
     enqueue(order){
         if (!order) {
-            throw new Error('訂單不能為空');
+            throw new OrderBookError('訂單不能為空');
         }
         
         try {
             this.heap.push(order);
             this._heapifyUp();
         } catch (error) {
-            throw new Error(`入隊失敗: ${error.message}`);
+            throw new OrderBokkError(`入隊失敗: ${error.message}`);
         }
     }
 
     dequeue(){
         if (this.getSize() === 0) {
-            throw new Error('隊列為空');
+            throw new OrderBokkError('隊列為空');
         }
 
         try {
@@ -34,13 +36,13 @@ class PriorityQueue {
             this._heapifyDown();
             return top;
         } catch (error) {
-            throw new Error(`出隊失敗: ${error.message}`);
+            throw new OrderBookError(`出隊失敗: ${error.message}`);
         }
     }
 
     getTop(){
         if (this.getSize() === 0) {
-            throw new Error('隊列為空');
+            throw new OrderBookError('隊列為空');
         }
         return this.heap[0];
     }
@@ -68,6 +70,7 @@ class PriorityQueue {
             const leftChildIndex = index * 2 + 1;
             const rightChildIndex = index * 2 + 2;
             let nextIndex = index;
+
 
             if( leftChildIndex <= lastIndex &&
                 this.comparator(this.heap[nextIndex], this.heap[leftChildIndex] >= 0)
