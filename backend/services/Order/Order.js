@@ -43,5 +43,5 @@ function createOrder(order) {
         throw new Error("\u8A02\u55AE\u9A57\u8B49\u5931\u6557: ".concat(JSON.stringify(validationErrors)));
     }
     // 返回訂單
-    return __assign(__assign({}, order), { timestamp: order.timestamp || Date.now() });
+    return __assign(__assign({}, order), { remaining_quantity: order.quantity, timestamp: order.timestamp || Date.now() });
 }

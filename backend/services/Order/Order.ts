@@ -3,6 +3,7 @@ export interface Order {
     stock_id: string;
     price: number;
     quantity: number;
+    remaining_quantity: number;
     order_side: string; // 單個值
     order_type: string; // 單個值
     timestamp?: number;
@@ -48,6 +49,7 @@ export interface Order {
     // 返回訂單
     return {
       ...order,
+      remaining_quantity: order.quantity,
       timestamp: order.timestamp || Date.now(),
     };
   }
