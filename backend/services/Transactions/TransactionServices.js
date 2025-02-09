@@ -11,6 +11,25 @@ const { TransactionError, ValidationError, NotFoundError } = require('../../util
 
 class TransactionServices {
     /**
+     * 驗證交易數據
+     * @private
+     */
+    static async _validateTransactionData(transactionData) {
+        // 檢查用戶
+        if (!await userRepository.userExist(transactionData.user_id)) {
+            throw new ValidationError(`用戶 ${transactionData.user_id} 不存在`);
+        }
+
+        // 檢查股票
+        const stocks = await stockRepository.get({
+            stock_symbol: transactionData.stock_symbol
+        });
+        if (stocks.rows.length === 0) {
+            throw new ValidationError(`股票代碼 ${transactionData.stock_symbol} 不存在`);
+        }
+    }
+
+    /**
      * 創建買入訂單並進行撮合
      * @param {Object} transactionData - 交易數據
      * @returns {Promise<Object>} 交易結果
@@ -20,16 +39,17 @@ class TransactionServices {
         
         try {
             // 1. 基礎驗證
-            const stock_id = await this._validateTransactionDataAndGetStockID(transactionData);
+            await this._validateTransactionData(transactionData);
+            
+            // 2. 設置 stock_id
+            transactionData.stock_id = await stockRepository.get({stock_symbol:transactionData.stock_symbol}).rows[0].stock_id;
 
-            // 2. 創建訂單
-            transactionData.stock_id = stock_id;
+            // 3. 創建訂單
+            const order = await this._createOrder(transactionData, client);
 
-            const order = await this._createOrder(transactionData,  client);
-
-            // 3. 進行撮合
+            // 4. 進行撮合
             const result = await this._processTransaction(order, client);
-            // 4. 更新用戶持股
+            // 5. 更新用戶持股
             if (result.transactions.length > 0) {
                 await this._updateUserHoldings(result.transactions, client);
             }
@@ -38,13 +58,13 @@ class TransactionServices {
 
             this._updateOrderState(order, transactionInfo)
 
-            // 5. 提交事務
+            // 6. 提交事務
             await client.commit();
             return this._formatTransactionResult(order, transactionInfo, result);
 
         } catch (error) {
-            await client.rollback()
-            console.error(error)
+            await client.rollback();
+            console.error(error);
             throw error;
         }
     }

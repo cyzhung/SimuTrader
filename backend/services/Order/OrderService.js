@@ -1,11 +1,17 @@
 const OrderRepository = require('../../repository/OrderRepository');
 const {NotFoundError, ForbiddenError, ValidationError, OrderError} = require('../../utils/Errors');
-const Order = require('./Order');
+const { OrderAbstract } = require('./OrderAbstract');
 
 class OrderService {
     static createOrder(orderData) {
         try {
-            const order = Order.createOrder(orderData);
+            const order = OrderAbstract.create_order(orderData);
+            const validationErrors = order.validate_order();
+            
+            if (validationErrors.length > 0) {
+                throw new ValidationError(`訂單驗證失敗: ${JSON.stringify(validationErrors)}`);
+            }
+
             return order;
         } catch (error) {
             throw new OrderError(`創建訂單失敗: ${error.message}`);
@@ -32,7 +38,7 @@ class OrderService {
             // 3. 從 OrderBook 中移除訂單
             const orderbook = OrderBookService.getOrderBook();
             await orderbook.removeOrder(order_id);
-
+            
             // 4. 更新訂單狀態
             await OrderRepository.update(order_id, { 
                 status: 'cancelled' 
