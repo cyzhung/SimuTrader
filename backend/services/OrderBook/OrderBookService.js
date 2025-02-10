@@ -38,23 +38,18 @@ class OrderBookService {
         }
     }
 
-    
-    static async findMatchingOrder(order){
-        return this.orderBook.findMatchingOrder(order);
-    }
-
-    static getBestAskPrice() {
+    static getBestAskPrice(stock_id) {
         if (!this.orderBook) {
             throw new OrderError('OrderBook 未初始化');
         }
-        return this.orderBook.getLowestSellPrice();
+        return this.orderBook.getLowestSellPrice(stock_id);
     }
 
-    static getBestBidPrice() {
+    static getBestBidPrice(stock_id) {
         if (!this.orderBook) {
             throw new OrderError('OrderBook 未初始化');
         }
-        return this.orderBook.getHighestBuyPrice();
+        return this.orderBook.getHighestBuyPrice(stock_id);
     }
 
     static getOrderBook() {
