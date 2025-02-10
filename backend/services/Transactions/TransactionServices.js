@@ -6,7 +6,7 @@ const Database = require('../../database/Database');
 const userRepository = require('../../repository/UserRepository');
 const stockRepository = require('../../repository/StockRepository');
 const UserStocksRepository = require('../../repository/UserStocksRepository');
-const UserRepository = require('../../repository/UserRepository');
+
 const { TransactionError, ValidationError, NotFoundError } = require('../../utils/Errors');
 
 class TransactionServices {
