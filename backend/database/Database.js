@@ -1,6 +1,5 @@
 const pool = require('./utils/DatabaseConnection');
 
-
 class Database {
 
     static async initialize() {
@@ -73,7 +72,7 @@ class Database {
     static async close() {
         if (Database.instance) {
             try {
-                await Database.instance.end();
+                await Database.instance.end({});
                 Database.instance = null;
                 console.log('Database connection closed');
             } catch (error) {
@@ -84,5 +83,4 @@ class Database {
     }
 }
 
-module.exports = Database; 
 module.exports = Database; 

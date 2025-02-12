@@ -1,21 +1,7 @@
 const request = require('supertest');
-const {app, initializeApp} = require('../../app');  // 導入 app 實例
-const Database = require('../../database/Database');
-const pool = require('../../database/utils/DatabaseConnection');
+const {app} = require('../../app');  // 導入 app 實例
 const UserStocksRepository = require('../../repository/UserStocksRepository');
 
-beforeAll(async () => {
-    try{
-        await Database.initialize(pool);
-        await initializeApp();
-    }catch(error){
-        console.error("Error initializing app:", error);
-    }
-});
-
-afterAll(async () => {
-    await Database.close();
-});
 
 
 describe('交易相關 API 測試', () => {

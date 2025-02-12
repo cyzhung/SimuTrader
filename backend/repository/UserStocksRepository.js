@@ -1,6 +1,8 @@
 const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../database/Database');
 class UserStocksRepository extends RepositroyAbstract{
+    static tableName = 'user_stocks';
+
     static async insert(user_stock, { transaction } = {}){
         const pool = transaction || Database.getPool();
         const query = `INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price) 
@@ -16,33 +18,11 @@ class UserStocksRepository extends RepositroyAbstract{
         }
     }
 
-    static async get(filters={user_id: null, stock_id: null}, { transaction } = {}) {
-        if(!filters.user_id){
+    static async get(filters = {}, { transaction } = {}) {
+        if (!filters.user_id) {
             throw new Error('User ID is required');
         }
-
-        const pool = transaction || Database.getPool();
-        let query = `
-            SELECT * FROM user_stocks WHERE 1=1
-        `;
-        let values = [];
-        let paramsCount = 1;
-
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                query += ` AND ${key} = $${paramsCount}`;
-                values.push(value);
-                paramsCount++;
-            }
-        });
-
-        try{
-            const result = await pool.query(query, values);
-            return result;
-        }catch(error){
-            console.error('Error getting user stocks:', error);
-            throw new DatabaseError(`用戶持股資料庫查詢錯誤: ${error.message}`);
-        }
+        return super.get(filters, { transaction });
     }
 
     static async update(data, { transaction } = {} ){
@@ -50,7 +30,7 @@ class UserStocksRepository extends RepositroyAbstract{
         const query = `
             UPDATE user_stocks SET quantity = $1, purchase_price = $2 WHERE user_id = $3 AND stock_id = $4
         `;
-        const values = [data.quantity, data.purchase_price, user_id, data.stock_id];
+        const values = [data.quantity, data.purchase_price, data.user_id, data.stock_id];
         try{
             await pool.query(query, values);
         }catch(error){

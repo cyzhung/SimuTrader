@@ -5,6 +5,7 @@ const { ValidationError, AuthenticationError } = require('../../utils/Errors');
 const Database = require('../../database/Database');
 class AuthService {
     static async login(email, password) {
+        const client = await Database.transaction();
         try {
             // 基本驗證
             if (!email || !password) {
@@ -12,7 +13,9 @@ class AuthService {
             }
 
             // 查找用戶
-            const result = await UserRepository.get({ filters: { email: email } });
+            const result = await UserRepository.get({
+                email: email
+            }, { transaction: client });
             const user = result.rows[0];
             if (!user) {
                 throw new ValidationError('帳號或密碼錯誤');
@@ -43,7 +46,7 @@ class AuthService {
     }
 
     static async register(userData) {
-        const transaction = await Database.transaction();
+        const client = await Database.transaction();
 
         try {
             const { email, password, username } = userData;
@@ -63,10 +66,9 @@ class AuthService {
             }
 
             // 檢查用戶是否已存在
-            const existingUser = await UserRepository.get({ 
-                filters: { email:email },
-                transaction 
-            });
+            const existingUser = await UserRepository.get({
+                email: email
+            }, { transaction: client });
             
             if (existingUser.rows.length > 0) {
                 throw new ValidationError('該 Email 已被註冊');
@@ -81,7 +83,7 @@ class AuthService {
                 password_hash: passwordHash,
                 username,
                 role: 'user'
-            }, { transaction });
+            }, { transaction: client });
 
             // 生成 token
             let token;
@@ -92,19 +94,19 @@ class AuthService {
                     role: user.role
                 });
             } catch (error) {
-                await transaction.rollback();
+                await client.rollback();
                 throw new Error('生成令牌失敗');
             }
 
             // 提交事務
-            await transaction.commit();
+            await client.commit();
 
             return {
                 user: this._sanitizeUser(user),
                 token: token
             };
         } catch (error) {
-            await transaction.rollback();
+            await client.rollback();
             throw error;
         }
     }

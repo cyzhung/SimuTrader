@@ -6,10 +6,11 @@ const {authMiddleware} = require('../middlewares/AuthMiddleware');
 router.get('/search', authMiddleware, async (req, res) => {
 
     const user_id = req.user.user_id;
-    const { order_id, status, stock_id } = req.body;
+
+    const { order_id, stock_id, order_type } = req.body;
 
     try{
-        const orders = await OrderRepository.get(filters={user_id:user_id, order_id:order_id, status:status, stock_id:stock_id});
+        const orders = await OrderRepository.get(filters={user_id:user_id, order_id:order_id, stock_id:stock_id, order_type:order_type});
         res.status(200).json({ message: orders });
     }catch(error){
         console.error('Error during search operation:', error.message);

@@ -1,41 +1,13 @@
 const RepositroyAbstract = require('./RepositoryFactory');
+const { DatabaseError } = require('../utils/Errors');
 const Database = require('../database/Database');
 
 class UserRepository extends RepositroyAbstract {
+    static tableName = 'users';
 
-    static async userExist(user_id, { transaction } = {}) {
-        const pool = transaction || Database.getPool();
-        const query = 'SELECT * FROM users WHERE user_id = $1';
-        const values = [user_id];
-        try {
-            const result = await pool.query(query, values);
-            return result.rows.length > 0;
-        } catch (error) {
-            console.error('Error checking user:', error);
-            throw error;
-        }
-    }
-
-    static async get( {filters} = {}, { transaction } = {}) {
-        const pool = transaction || Database.getPool();
-        let query = 'SELECT * FROM users WHERE 1=1';
-        let values = [];
-        let paramCount = 1;
-        // 動態添加過濾條件
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                query += ` AND ${key} = $${paramCount}`;
-                values.push(value);
-                paramCount++;
-            }
-        });
-        
-        try {
-            return await pool.query(query, values);
-        } catch (error) {
-            console.error('Error getting user:', error);
-            throw new DatabaseError(`用戶資料庫查詢錯誤: ${error.message}`);
-        }
+    static async userExist(user_id) {
+        const result = await this.get({ user_id });
+        return result.rows.length > 0;
     }
 
     static async insert(user, { transaction } = {}) {
