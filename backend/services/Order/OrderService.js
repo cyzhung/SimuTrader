@@ -1,11 +1,11 @@
 const OrderRepository = require('../../repository/OrderRepository');
 const {NotFoundError, ForbiddenError, ValidationError, OrderError} = require('../../utils/Errors');
-const { OrderAbstract } = require('./OrderAbstract');
+const OrderFactory = require('./OrderFactory');
 
 class OrderService {
     static createOrder(orderData) {
         try {
-            const order = OrderAbstract.create_order(orderData);
+            const order = OrderFactory.createOrder(orderData);
             const validationErrors = order.validate_order();
             
             if (validationErrors.length > 0) {

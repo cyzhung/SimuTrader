@@ -3,6 +3,7 @@ const { DatabaseError, NotFoundError, ValidationError } = require('../utils/Erro
 const RepositroyAbstract = require('./RepositoryFactory');
 
 class OrderRepository extends RepositroyAbstract{
+    static tableName = 'orders';
     static async insert(order, { transaction } = {}){
         const pool = transaction || Database.getPool();
         const query = `
@@ -69,31 +70,6 @@ class OrderRepository extends RepositroyAbstract{
         }catch(error){
             console.error('Error updating order:', error);
             throw new DatabaseError(`訂單資料庫更新錯誤: ${error.message}`);
-        }
-    }
-
-    static async get(filters = {}, { transaction } = {}) {
-        const pool = transaction || Database.getPool();        
-        let query = `SELECT * FROM orders WHERE 1=1`;
-        const values = [];
-        let paramCount = 1;
-
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                query += `AND ${key} = $${paramCount}`;
-                values.push(value);
-                paramCount++;
-            }
-        });
-
-        query += ` ORDER BY created_at DESC`;
-
-        try {
-            const result = await pool.query(query, values);
-            return result;
-        } catch(error) {
-            console.error('Error getting orders:', error);
-            throw new DatabaseError(`訂單資料庫查詢錯誤: ${error.message}`);
         }
     }
 }

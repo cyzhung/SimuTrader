@@ -38,18 +38,18 @@ class OrderBookService {
         }
     }
 
-    static getBestAskPrice(stock_id) {
+    static getLowestSellOrder(stock_id) {
         if (!this.orderBook) {
             throw new OrderError('OrderBook 未初始化');
         }
-        return this.orderBook.getLowestSellPrice(stock_id);
+        return this.orderBook.getLowestSellOrder(stock_id);
     }
 
-    static getBestBidPrice(stock_id) {
+    static getHighestBuyOrder(stock_id) {
         if (!this.orderBook) {
             throw new OrderError('OrderBook 未初始化');
         }
-        return this.orderBook.getHighestBuyPrice(stock_id);
+        return this.orderBook.getHighestBuyOrder(stock_id);
     }
 
     static getOrderBook() {

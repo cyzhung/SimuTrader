@@ -1,7 +1,3 @@
-const { OrderError } = require('../../utils/Errors');
-const { LimitOrder } = require('./LimitOrder');
-const { MarketOrder } = require('./MarketOrder');
-
 const OrderSide = {
     Buy: "Buy",
     Sell: "Sell"
@@ -45,16 +41,8 @@ class OrderAbstract {
         return errors;
     }
 
-    async match(orderBook) {
+    async match() {
         throw new Error('match method must be implemented by subclasses');
-    }
-
-    static create_order(orderInfo) {
-        if (orderInfo.price) {
-            return new LimitOrder(orderInfo);
-        } else {
-            return new MarketOrder(orderInfo);
-        }
     }
 }
 

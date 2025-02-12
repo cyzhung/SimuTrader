@@ -3,18 +3,32 @@ require('dotenv').config({ path: '.env.test' });
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
 
-const { app, initializeApp } = require('../app');
 const Database = require('../database/Database');
-const pool = require('../database/utils/DatabaseConnection');
+const OrderBookService = require('../services/OrderBook/OrderBookService');
+
+
+let server;
 
 beforeAll(async () => {
-    // 初始化數據庫
-    await Database.initialize(pool);
-    
-    // 初始化 app（包括 OrderBook）
-    await initializeApp();
+    try {
+        await Database.initialize(); 
+        console.log('Database connection initialized successfully');
+        await OrderBookService.initialize();
+        console.log('OrderBook initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize OrderBook:', error);
+        throw error;
+    }
 });
 
 afterAll(async () => {
-    await Database.close();
-});
+    console.log('開始關閉測試環境...');
+    try {
+        // 關閉數據庫連接
+        await Database.close();
+        console.log('數據庫連接已關閉');
+    } catch (error) {
+        console.error('關閉測試環境時出錯:', error);
+        throw error;
+    }
+}, 10000);  // 增加超時時間到 10 秒

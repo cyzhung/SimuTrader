@@ -1,31 +1,9 @@
 const RepositroyAbstract = require("./RepositoryFactory");
 const Database = require('../database/Database');
 
-class StockRepository extends RepositroyAbstract{
+class StockRepository extends RepositroyAbstract {
+    static tableName = 'stocks';
 
-    static async get(filters={stock_symbol: null, stock_name: null, market_type: null}, { transaction } = {}){
-        const pool = transaction || Database.getPool();
-        let query = 'SELECT * FROM stocks WHERE 1=1';
-        let values = [];
-        let paramCount = 1;
-        
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                query += ` AND ${key} = $${paramCount}`;
-                values.push(value);
-                paramCount++;
-            }
-        });
-
-
-        try{
-            const result = await pool.query(query, values);
-            return result;
-        }catch(error){
-            console.error('Error getting stocks by filters:', error);
-            throw new DatabaseError(`股票資訊資料庫查詢錯誤: ${error.message}`);
-        }
-    }
 
     static async insert(stock, { transaction } = {}){
         const pool = transaction || Database.getPool();

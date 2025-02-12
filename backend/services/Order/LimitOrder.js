@@ -22,8 +22,8 @@ class LimitOrder extends OrderAbstract {
         const transactions = [];
         while(this.remaining_quantity > 0){
             if(this.order_side === "Buy"){
-                const bestAskPrice = OrderBookService.getBestAskPrice(this.stock_id);
-                if(bestAskPrice.price <= this.price){
+                const lowestSellOrder = OrderBookService.getLowestSellOrder(this.stock_id);
+                if(lowestSellOrder.price <= this.price){
                     const matchingOrder = orderBook.dequeue();
                     const transaction_quantity = Math.min(this.remaining_quantity, matchingOrder.remaining_quantity);
 
@@ -31,7 +31,7 @@ class LimitOrder extends OrderAbstract {
                         order_id: this.order_id,
                         matching_order_id: matchingOrder.order_id,
                         transaction_quantity: transaction_quantity,
-                        transaction_price: bestAskPrice.price
+                        transaction_price: lowestSellOrder.price
                     }
                     transactions.push(transaction);
                     orderBook.updateUserOrderState(this.order_id, transaction);
@@ -42,8 +42,8 @@ class LimitOrder extends OrderAbstract {
                 }
             }
             else{
-                const bestBidPrice = OrderBookService.getBestBidPrice(this.stock_id);
-                if(bestBidPrice.price >= this.price){
+                const highestBuyOrder = OrderBookService.getHighestBuyOrder(this.stock_id);
+                if(highestBuyOrder.price >= this.price){
                     const matchingOrder = orderBook.dequeue();
                     const transaction_quantity = Math.min(this.remaining_quantity, matchingOrder.remaining_quantity);
 
@@ -51,7 +51,7 @@ class LimitOrder extends OrderAbstract {
                         order_id: this.order_id,
                         matching_order_id: matchingOrder.order_id,
                         transaction_quantity: transaction_quantity,
-                        transaction_price: bestBidPrice.price
+                        transaction_price: highestBuyOrder.price
                     }
                     transactions.push(transaction);
                     orderBook.updateUserOrderState(this.order_id, transaction);
@@ -59,9 +59,10 @@ class LimitOrder extends OrderAbstract {
                 }
                 else{
                     break;
+                }
             }
         }
+        return transactions;
     }
 }
-
 module.exports = { LimitOrder };

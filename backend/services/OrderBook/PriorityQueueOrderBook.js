@@ -3,6 +3,7 @@ const OrderBook_abs = require('./OrderBookFactory');
 const priorityQueue = require('../../utils/PriorityQueue')
 const OrderService = require('../Order/OrderService');
 const OrderRepository = require('../../repository/OrderRepository');
+const TransactionLogsRepository = require('../../repository/TransactionLogsRepository');
 const {OrderError} = require('../../utils/Errors');
 class PriorityQueueOrderBook extends OrderBook_abs{
     constructor(){
@@ -46,20 +47,68 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         }
     }
 
-    async initialize(){
-        const pendingOrdersInfo = await OrderRepository.get({status:"pending"});
-        const partialOrdersInfo = await OrderRepository.get({status:"partial"});
- 
-        for(const orderInfo of pendingOrdersInfo.rows){
-            const order = await OrderService.createOrder(orderInfo);
-            this.addOrder(order);
-        }
+    async initialize() {
+        try {
+            // 1. 獲取所有未完成的交易事件
+            const transactionLogs = await TransactionLogsRepository.get({
+                event_type: ["NEW_ORDER", "MATCHED_ORDER"],
+                order_by: "log_timestamp ASC"  // 按時間順序處理
+            });
 
-        for(const orderInfo of partialOrdersInfo.rows){
-            const order = await OrderService.createOrder(orderInfo);
-            this.addOrder(order);
-        }
+            // 2. 重建訂單狀態
+            const activeOrders = new Map(); // 暫存活動訂單
 
+            for (const log of transactionLogs.rows) {
+                if (log.event_type === "NEW_ORDER") {
+                    // 創建新訂單
+                    const orderId = log.buy_order_id || log.sell_order_id;
+                    const orderSide = log.buy_order_id ? "Buy" : "Sell";
+                    
+                    const order = {
+                        order_id: orderId,
+                        stock_id: log.additional_info.stock_id,
+                        order_side: orderSide,
+                        order_type: log.additional_info.order_type,
+                        price: log.price,
+                        quantity: log.quantity,
+                        remaining_quantity: log.quantity,
+                        status: 'pending'
+                    };
+                    
+                    activeOrders.set(orderId, order);
+                }
+                else if (log.event_type === "MATCHED_ORDER") {
+                    // 更新訂單狀態
+                    if (log.buy_order_id && activeOrders.has(log.buy_order_id)) {
+                        const buyOrder = activeOrders.get(log.buy_order_id);
+                        buyOrder.remaining_quantity -= log.quantity;
+                        if (buyOrder.remaining_quantity <= 0) {
+                            activeOrders.delete(log.buy_order_id);
+                        }
+                    }
+                    
+                    if (log.sell_order_id && activeOrders.has(log.sell_order_id)) {
+                        const sellOrder = activeOrders.get(log.sell_order_id);
+                        sellOrder.remaining_quantity -= log.quantity;
+                        if (sellOrder.remaining_quantity <= 0) {
+                            activeOrders.delete(log.sell_order_id);
+                        }
+                    }
+                }
+            }
+
+            // 3. 將活動訂單加入 OrderBook
+            for (const order of activeOrders.values()) {
+                if (order.remaining_quantity > 0) {
+                    this.addOrder(order);
+                }
+            }
+
+            console.log(`OrderBook initialized with ${activeOrders.size} active orders`);
+        } catch (error) {
+            console.error('Error initializing OrderBook:', error);
+            throw new OrderError(`OrderBook 初始化失敗: ${error.message}`);
+        }
     }
 
     // 用於測試的方法
@@ -114,16 +163,15 @@ class PriorityQueueOrderBook extends OrderBook_abs{
         }
     }
 
-    getLowestSellPrice(stock_id){
+    getLowestSellOrder(stock_id){
         const {sellQueue} = this._getOrderQueues(stock_id);
         return sellQueue.getTop();
     }
 
-    getHighestBuyPrice(stock_id){
+    getHighestBuyOrder(stock_id){
         const {buyQueue} = this._getOrderQueues(stock_id);
         return buyQueue.getTop();
     }
-
 }
 
 module.exports = PriorityQueueOrderBook;

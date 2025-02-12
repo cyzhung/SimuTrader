@@ -18,32 +18,27 @@ const seedDatabase = async () => {
 
         // 2. 插入股票數據
         const stocksResult = await pool.query(`
-            INSERT INTO stocks (stock_symbol, stock_name, price, market_type)
+            INSERT INTO stocks (stock_symbol, stock_name, market_type)
             VALUES 
-                ('2330', '台積電', 500.00, 'TW'),
-                ('2317', '鴻海', 100.50, 'TW'),
-                ('2454', '聯發科', 750.00, 'TW'),
-                ('2412', '中華電', 120.50, 'TW')
+                ('2330', '台積電', 'TW'),
+                ('2317', '鴻海', 'TW'),
+                ('2454', '聯發科', 'TW'),
+                ('2412', '中華電', 'TW')
             RETURNING stock_id;
         `);
         console.log('測試股票創建成功');
 
-        // 3. 插入用戶持股數據
-        await pool.query(`
-            INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price)
-            VALUES 
-                ($1, $2, 1000, 495.00),
-                ($1, $3, 500, 98.50)
-        `, [usersResult.rows[0].user_id, stocksResult.rows[0].stock_id, stocksResult.rows[1].stock_id]);
-        console.log('測試用戶持股創建成功');
-
-        // 4. 插入股票價格歷史數據
+        // 3. 插入股票價格歷史數據
         const today = new Date();
         for (let i = 0; i < 5; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - i);
             
             for (const stock of stocksResult.rows) {
+                const basePrice = stock.stock_id === stocksResult.rows[0].stock_id ? 500 :
+                                stock.stock_id === stocksResult.rows[1].stock_id ? 100 :
+                                stock.stock_id === stocksResult.rows[2].stock_id ? 750 : 120;
+                
                 await pool.query(`
                     INSERT INTO stock_prices 
                     (stock_id, price_date, open_price, close_price, high_price, low_price, volume)
@@ -53,37 +48,57 @@ const seedDatabase = async () => {
                 `, [
                     stock.stock_id,
                     date,
-                    500 + Math.random() * 10,
-                    505 + Math.random() * 10,
-                    510 + Math.random() * 10,
-                    495 + Math.random() * 10,
+                    basePrice + Math.random() * 10,
+                    basePrice + 5 + Math.random() * 10,
+                    basePrice + 10 + Math.random() * 10,
+                    basePrice - 5 + Math.random() * 10,
                     Math.floor(Math.random() * 1000000)
                 ]);
             }
         }
         console.log('股票價格歷史數據創建成功');
 
-        // 5. 插入交易記錄
-        await pool.query(`
-            INSERT INTO transactions 
-            (user_id, stock_id, transaction_type, price, quantity)
+        // 4. 插入用戶持股數據
+        const userStocksResult = await pool.query(`
+            INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price)
             VALUES 
-                ($1, $2, 'buy', 498.00, 500),
-                ($1, $2, 'sell', 505.00, 200),
-                ($1, $3, 'buy', 99.50, 300)
+                ($1, $2, 1000, 495.00),
+                ($1, $3, 500, 98.50)
+            RETURNING user_stock_id;
         `, [usersResult.rows[0].user_id, stocksResult.rows[0].stock_id, stocksResult.rows[1].stock_id]);
-        console.log('測試交易記錄創建成功');
+        console.log('測試用戶持股創建成功');
+
+        // 5. 插入成本歷史
+        await pool.query(`
+            INSERT INTO cost_history (user_stock_id, quantity, price)
+            VALUES 
+                ($1, 1000, 495.00),
+                ($2, 500, 98.50)
+        `, [userStocksResult.rows[0].user_stock_id, userStocksResult.rows[1].user_stock_id]);
+        console.log('成本歷史創建成功');
 
         // 6. 插入訂單數據
-        await pool.query(`
+        const ordersResult = await pool.query(`
             INSERT INTO orders 
             (user_id, stock_id, order_side, order_type, price, quantity, remaining_quantity, status)
             VALUES 
                 ($1, $2, 'Buy', 'Limit', 495.00, 100, 100, 'pending'),
                 ($1, $2, 'Sell', 'Limit', 510.00, 50, 50, 'pending'),
-                ($1, $3, 'Buy', 'Market', 100.00, 200, 200, 'pending')
+                ($1, $3, 'Buy', 'Market', NULL, 200, 200, 'pending')
+            RETURNING order_id;
         `, [usersResult.rows[0].user_id, stocksResult.rows[0].stock_id, stocksResult.rows[1].stock_id]);
         console.log('測試訂單創建成功');
+
+        // 7. 插入交易日誌
+        await pool.query(`
+            INSERT INTO transaction_log 
+            (event_type, buy_order_id, sell_order_id, quantity, price, additional_info)
+            VALUES 
+                ('NEW_ORDER', $1, NULL, 100, 495.00, '{"status": "pending", "order_type": "Limit"}'::jsonb),
+                ('NEW_ORDER', NULL, $2, 50, 510.00, '{"status": "pending", "order_type": "Limit"}'::jsonb),
+                ('MATCHED_ORDER', $1, $2, 50, 500.00, '{"match_type": "limit_match", "status": "partial"}'::jsonb)
+        `, [ordersResult.rows[0].order_id, ordersResult.rows[1].order_id]);
+        console.log('測試交易日誌創建成功');
 
         console.log('所有測試數據插入完成！');
 

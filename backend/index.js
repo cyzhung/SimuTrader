@@ -1,46 +1,26 @@
-const express = require('express');
-const app = express();
-const usersRoutes = require('./routes/Users');
-const stocksRoutes = require('./routes/Stocks');
-const userSrocksRoutes = require('./routes/Transactions');
-const ordersRoutes = require('./routes/Orders');
-const transactionsRoutes = require('./routes/Transactions');
+const app = require('express')();
 const Database = require('./database/Database');
-const OrderService = require('./services/Order/OrderService');
 const OrderBookService = require('./services/OrderBook/OrderBookService');
-const PriorityQueueOrderBook = require('./services/OrderBook/PriorityQueueOrderBook');
-// 初始化數據庫連接
+
+// 初始化應用
 async function initializeApp() {
     try {
-        // 初始化數據庫連接
         await Database.initialize();
         console.log('Database connection initialized successfully');
-
         // 初始化 OrderBook
         await OrderBookService.initialize();
         console.log('OrderBook initialized successfully');
-        // Express 中間件
-        app.use(express.json());
-        
-        // API 路由
-        app.use('/api/users', usersRoutes);
-        app.use('/api/stocks', stocksRoutes);
-        app.use('/api/userStocks', userSrocksRoutes);
-        app.use('/api/orders', ordersRoutes);
-        app.use('/api/transactions', transactionsRoutes);
-        // 根路徑
-        app.get('/', (req, res) => {
-            res.send('Welcome to the Stock Tracker API!');
-        });
+
 
         // 啟動服務器
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () => {
             console.log(`Server running at http://localhost:${PORT}`);
         });
+        
     } catch (error) {
         console.error('Failed to initialize application:', error);
-        process.exit(1);  // 如果數據庫初始化失敗，結束程序
+        process.exit(1);
     }
 }
 

@@ -1,4 +1,4 @@
-const TransactionsRepository = require('../../repository/TransactionsRepository');
+const TransactionLogsRepository = require('../../repository/TransactionLogsRepository');
 const OrderRepository = require('../../repository/OrderRepository');
 const OrderBookService = require('../OrderBook/OrderBookService');
 const OrderService = require('../Order/OrderService');
@@ -41,22 +41,19 @@ class TransactionServices {
             // 1. 基礎驗證
             await this._validateTransactionData(transactionData);
             
-            // 2. 設置 stock_id
-            transactionData.stock_id = await stockRepository.get({stock_symbol:transactionData.stock_symbol}).rows[0].stock_id;
-
-            // 3. 創建訂單
+            // 2. 創建訂單
             const order = await this._createOrder(transactionData, client);
 
-            // 4. 進行撮合
-            const result = await this._processTransaction(order, client);
-            // 5. 更新用戶持股
-            if (result.transactions.length > 0) {
-                await this._updateUserHoldings(result.transactions, client);
+            // 3. 進行撮合
+            const transactions = await this._processTransaction(order, client);
+            // 4. 更新用戶持股
+            if (transactions.length > 0) {
+                await this._updateUserHoldings(transactions, client);
+                const transactionInfo = this._computeTransactionsInfo(transactions);
+                this._updateOrderState(order, transactionInfo)
             }
 
-            const transactionInfo = this._computeTransactionsInfo(result.transactions);
-
-            this._updateOrderState(order, transactionInfo)
+            
 
             // 6. 提交事務
             await client.commit();
@@ -234,54 +231,11 @@ class TransactionServices {
      */
     static async _processTransaction(order, client) {
         OrderBookService.addOrder(order);
-        return await this._matchOrders(order, client);
-    }
-
-    /**
-     * 撮合訂單
-     * @private
-     */
-    static async _matchOrders(order, client) {
-        const transactions = [];
-        while (order.remaining_quantity > 0) {
-            const matchResult = await this._findMatchingOrder(order);
-            if (!matchResult) break;
-
-            const transaction = await this._executeTransaction(order, matchResult, client);
-            transactions.push(transaction);
+        const transactions = await order.match();
+        for(const transaction of transactions){
+            await TransactionsRepository.insert(transaction, { transaction: client });
         }
-
-        return {
-            status: order.remaining_quantity === 0 ? 'filled' : 'partial',
-            message: order.remaining_quantity === 0 ? '訂單完全成交' : '部分成交',
-            transactions
-        };
-    }
-    static async _findMatchingOrder(order){
-        return OrderBookService.findMatchingOrder(order);
-    }
-    static async _executeTransaction(order, matchResult, client){
-        const transaction_quantity = Math.min(order.remaining_quantity, matchResult.remaining_quantity);
-        const transaction_price = order.order_type==="Market"?matchResult.price:Math.min(matchResult.price,order.price);
-        order.remaining_quantity -= transaction_quantity;
-
-        const buy_order = order.side==="Buy"? order : matchResult;
-        const sell_order = order.side==="Sell"? order : matchResult;
-
-        const transaction_id = await TransactionsRepository.insert({
-            buy_order_id: buy_order.order_id,
-            sell_order_id: sell_order.order_id,
-            quantity: transaction_quantity,
-            price: transaction_price
-        }, { transaction: client });
-
-        return {
-            transation_id: transaction_id,
-            transaction_quantity: transaction_quantity,
-            transaction_price: transaction_price,
-            buy_order: buy_order,
-            sell_order: sell_order
-        }
+        return transactions;
     }
     static async _computeTransactionsInfo(transactions){
         let avgPrice = 0;

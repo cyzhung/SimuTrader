@@ -1,6 +1,8 @@
 const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../Database');
-class StockPricesRepository extends RepositroyAbstract{
+class StockPricesRepository extends RepositroyAbstract {
+    static tableName = 'stock_prices';
+
     static async insert(stock_price, { transaction } = {}){
         const pool = transaction || Database.getPool();
         const query = `INSERT INTO stock_prices (stock_id, price_date, open_price, close_price, high_price, low_price, volume) 
@@ -14,15 +16,19 @@ class StockPricesRepository extends RepositroyAbstract{
             throw new DatabaseError(`股票資料庫新增錯誤: ${error.message}`);
         }
     }
-    static async get( filters = {}, {transaction = null } = {}) {
+
+    static async get(filters = {}, { transaction } = {}) {
         const pool = transaction || Database.getPool();
-        let query = `SELECT * FROM stock_prices WHERE 1=1`;
+        let query = `SELECT * FROM ${this.tableName} WHERE 1=1`;
         let values = [];
         let paramCount = 1;
 
-        // 定義特殊處理的過濾條件
-        const specialFilters = {
-            start_date: (value) => {
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value === null || value === undefined || key === 'end_date' || key === 'order_by') {
+                return;
+            }
+
+            if (key === 'start_date') {
                 if (filters.end_date) {
                     query += ` AND price_date BETWEEN $${paramCount} AND $${paramCount + 1}`;
                     values.push(value, filters.end_date);
@@ -32,18 +38,10 @@ class StockPricesRepository extends RepositroyAbstract{
                     values.push(value);
                     paramCount++;
                 }
-            }
-        };
-
-        // 處理所有過濾條件
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value === null || value === undefined || key === 'end_date') {
-                return;
-            }
-
-            // 使用特殊處理邏輯或默認處理邏輯
-            if (specialFilters[key]) {
-                specialFilters[key](value);
+            } else if (Array.isArray(value)) {
+                const placeholders = value.map(() => `$${paramCount++}`).join(', ');
+                query += ` AND ${key} IN (${placeholders})`;
+                values.push(...value);
             } else {
                 query += ` AND ${key} = $${paramCount}`;
                 values.push(value);
@@ -51,12 +49,16 @@ class StockPricesRepository extends RepositroyAbstract{
             }
         });
 
+        if (filters.order_by) {
+            query += ` ORDER BY ${filters.order_by}`;
+        }
+
         try {
             const result = await pool.query(query, values);
             return result;
         } catch (error) {
             console.error('Error getting stock prices:', error);
-            throw new DatabaseError(`股票資料庫查詢錯誤: ${error.message}`);
+            throw new DatabaseError(`股票價格資料庫查詢錯誤: ${error.message}`);
         }
     }
 

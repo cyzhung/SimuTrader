@@ -1,17 +1,8 @@
 const request = require('supertest');
 const {app} = require('../../app');  // 導入 app 實例
-const Database = require('../../database/Database');
-const pool = require('../../database/utils/DatabaseConnection');
 
-// 在所有測試開始前連接數據庫
-beforeAll(async () => {
-    await Database.initialize(pool);
-});
 
-// 在所有測試結束後關閉數據庫連接
-afterAll(async () => {
-    await Database.close();
-});
+
 
 describe('認證相關 API 測試', () => {
     let authToken;

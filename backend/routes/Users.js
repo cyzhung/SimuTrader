@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
-const salt = 99
+
 const UserRepository = require('../repository/UserRepository');
 const AuthController = require('../services/Auth/AuthController');
 // 創建帳號API

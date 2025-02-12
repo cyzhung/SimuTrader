@@ -15,7 +15,7 @@ const initDatabase = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         user_id SERIAL PRIMARY KEY,
-        username VARCHAR(255) NOT NULL,
+        username VARCHAR(255) ,
         role VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
@@ -29,7 +29,6 @@ const initDatabase = async () => {
         stock_id SERIAL PRIMARY KEY,
         stock_symbol VARCHAR(10) UNIQUE NOT NULL,
         stock_name VARCHAR(255) NOT NULL,
-        price NUMERIC(10,2) NOT NULL,
         market_type VARCHAR(2) NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW()
       );`
@@ -81,20 +80,29 @@ const initDatabase = async () => {
 
     
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        transaction_id SERIAL PRIMARY KEY,
-        buy_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,     -- 買方訂單ID
-        sell_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,    -- 賣方訂單ID
-        quantity INT NOT NULL CHECK (quantity > 0),                         -- 成交數量
-        price NUMERIC(10, 2) NOT NULL CHECK(price > 0),                    -- 成交價格
-        transaction_date TIMESTAMP DEFAULT NOW(),                           -- 成交時間
-        FOREIGN KEY (buy_order_id) REFERENCES orders(order_id),
-        FOREIGN KEY (sell_order_id) REFERENCES orders(order_id)
-      );`
+      CREATE TABLE IF NOT EXISTS transaction_log (
+        log_id SERIAL PRIMARY KEY,
+        event_type VARCHAR(50) NOT NULL,  -- 事件類型，例如 'NEW_ORDER', 'MATCHED_ORDER', 'TRADE', 'CANCEL'
+        buy_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,
+        sell_order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,
+        quantity INT NOT NULL CHECK (quantity > 0),  -- 成交數量或事件相關數量
+        price NUMERIC(10, 2) CHECK (price > 0),        -- 成交價格或相關價格（若適用）
+        log_timestamp TIMESTAMP DEFAULT NOW(),         -- 事件發生時間
+        additional_info JSONB                          -- 可存放額外資訊，例如部分成交數量、撮合算法輸出等
+    );`
     );
     console.log('Transactions table created.');
 
-    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cost_history (
+        cost_id SERIAL PRIMARY KEY,
+        user_stock_id INT REFERENCES user_stocks(user_stock_id) ON DELETE CASCADE,
+        quantity INT NOT NULL,
+        price NUMERIC(10, 2) NOT NULL,
+        transaction_date TIMESTAMP DEFAULT NOW()
+    );`
+    );
+    console.log('Cost history table created.');
 
     console.log('Database initialized successfully!');
   } catch (err) {
