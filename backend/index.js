@@ -1,4 +1,4 @@
-const app = require('express')();
+const {app} = require('./app');
 const Database = require('./database/Database');
 const OrderBookService = require('./services/OrderBook/OrderBookService');
 

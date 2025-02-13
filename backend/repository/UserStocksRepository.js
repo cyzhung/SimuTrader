@@ -1,9 +1,10 @@
 const RepositroyAbstract = require('./RepositoryFactory');
 const Database = require('../database/Database');
+const { DatabaseError } = require('../utils/Errors');
 class UserStocksRepository extends RepositroyAbstract{
     static tableName = 'user_stocks';
 
-    static async insert(user_stock, { transaction } = {}){
+    static async insert(user_stock,  {transaction} = {}){
         const pool = transaction || Database.getPool();
         const query = `INSERT INTO user_stocks (user_id, stock_id, quantity, purchase_price) 
                         VALUES ($1, $2, $3, $4) RETURNING user_stock_id`;
@@ -18,14 +19,14 @@ class UserStocksRepository extends RepositroyAbstract{
         }
     }
 
-    static async get(filters = {}, { transaction } = {}) {
+    static async get(filters = {}) {
         if (!filters.user_id) {
             throw new Error('User ID is required');
         }
-        return super.get(filters, { transaction });
+        return await super.get(filters);
     }
 
-    static async update(data, { transaction } = {} ){
+    static async update(data,  {transaction}  = {}){
         const pool = transaction || Database.getPool();
         const query = `
             UPDATE user_stocks SET quantity = $1, purchase_price = $2 WHERE user_id = $3 AND stock_id = $4

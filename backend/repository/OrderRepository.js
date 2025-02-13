@@ -4,7 +4,8 @@ const RepositroyAbstract = require('./RepositoryFactory');
 
 class OrderRepository extends RepositroyAbstract{
     static tableName = 'orders';
-    static async insert(order, { transaction } = {}){
+    static async insert(order,  {transaction} = {}){
+        console.log(transaction)
         const pool = transaction || Database.getPool();
         const query = `
             INSERT INTO orders (
@@ -36,7 +37,7 @@ class OrderRepository extends RepositroyAbstract{
         }
     }
 
-    static async delete(order_id, { transaction } = {}){
+    static async delete(order_id,  {transaction}  = {}){
         const pool = transaction || Database.getPool();
         const query = 'DELETE FROM orders WHERE order_id = $1';
         const values = [order_id];

@@ -5,7 +5,6 @@ const { ValidationError, AuthenticationError } = require('../../utils/Errors');
 const Database = require('../../database/Database');
 class AuthService {
     static async login(email, password) {
-        const client = await Database.transaction();
         try {
             // 基本驗證
             if (!email || !password) {
@@ -15,7 +14,7 @@ class AuthService {
             // 查找用戶
             const result = await UserRepository.get({
                 email: email
-            }, { transaction: client });
+            });
             const user = result.rows[0];
             if (!user) {
                 throw new ValidationError('帳號或密碼錯誤');
@@ -68,7 +67,7 @@ class AuthService {
             // 檢查用戶是否已存在
             const existingUser = await UserRepository.get({
                 email: email
-            }, { transaction: client });
+            });
             
             if (existingUser.rows.length > 0) {
                 throw new ValidationError('該 Email 已被註冊');
@@ -77,13 +76,13 @@ class AuthService {
             // 密碼加密
             const passwordHash = await bcrypt.hash(password, 10);
 
-            // 創建用戶
+            //創建用戶
             const user = await UserRepository.insert({
                 email,
                 password_hash: passwordHash,
                 username,
                 role: 'user'
-            }, { transaction: client });
+            },  {transaction:client} );
 
             // 生成 token
             let token;

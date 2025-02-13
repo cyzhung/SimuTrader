@@ -7,7 +7,7 @@ const userRepository = require('../../repository/UserRepository');
 const stockRepository = require('../../repository/StockRepository');
 const UserStocksRepository = require('../../repository/UserStocksRepository');
 
-const { TransactionError, ValidationError, NotFoundError } = require('../../utils/Errors');
+const { ValidationError } = require('../../utils/Errors');
 
 class TransactionServices {
     /**
@@ -45,15 +45,13 @@ class TransactionServices {
             const order = await this._createOrder(transactionData, client);
 
             // 3. 進行撮合
-            const transactions = await this._processTransaction(order, client);
+            const transactions = this._processTransaction(order, client);
             // 4. 更新用戶持股
             if (transactions.length > 0) {
                 await this._updateUserHoldings(transactions, client);
                 const transactionInfo = this._computeTransactionsInfo(transactions);
                 this._updateOrderState(order, transactionInfo)
             }
-
-            
 
             // 6. 提交事務
             await client.commit();
@@ -128,7 +126,7 @@ class TransactionServices {
         const userStocks = await UserStocksRepository.get({
             user_id: user_id,
             stock_id: stock_id
-        }, { transaction: client });
+        });
 
         if (userStocks.rows.length === 0) {
             await UserStocksRepository.insert({
@@ -136,7 +134,7 @@ class TransactionServices {
                 stock_id: transactionData.stock_id,
                 quantity: transaction.quantity,
                 purchase_price: transaction.price
-            }, { transaction: client });
+            },  {transaction : client} );
         } else {
             const currentHolding = userStocks.rows[0];
             const newQuantity = currentHolding.quantity + transaction.quantity;
@@ -160,7 +158,7 @@ class TransactionServices {
         const currentHolding = await UserStocksRepository.get({
             user_id: transactionData.user_id,
             stock_id: transactionData.stock_id
-        }, { transaction: client });
+        } );
 
         const newQuantity = currentHolding.rows[0].quantity - transaction.quantity;
         
@@ -168,13 +166,13 @@ class TransactionServices {
             await UserStocksRepository.delete({
                 user_id: transactionData.user_id,
                 stock_id: transactionData.stock_id
-            }, { transaction: client });
+            },  client );
         } else {
             await UserStocksRepository.update({
                 user_id: transactionData.user_id,
                 stock_id: transactionData.stock_id,
                 quantity: newQuantity
-            }, { transaction: client });
+            },  client );
         }
     }
 
@@ -204,10 +202,11 @@ class TransactionServices {
      * @private
      */
     static async _validateUserHoldings(transactionData, client) {
+
         const userStocks = await UserStocksRepository.get({
             user_id: transactionData.user_id,
             stock_id: transactionData.stock_id
-        }, { transaction: client });
+        },  {transaction : client} );
         
         if (!userStocks.rows.length || userStocks.rows[0].quantity < transactionData.quantity) {
             throw new ValidationError('持股不足');
@@ -219,9 +218,8 @@ class TransactionServices {
      * @private
      */
     static async _createOrder(transactionData, client) {
-        
         const order = OrderService.createOrder(transactionData)
-        const order_id = await OrderRepository.insert(order, { transaction: client });
+        const order_id = await OrderRepository.insert(order,  {transaction : client});
         return { ...order, order_id:order_id };
     }
 
@@ -233,11 +231,11 @@ class TransactionServices {
         OrderBookService.addOrder(order);
         const transactions = await order.match();
         for(const transaction of transactions){
-            await TransactionsRepository.insert(transaction, { transaction: client });
+            await TransactionsRepository.insert(transaction,  {transaction : client} );
         }
         return transactions;
     }
-    static async _computeTransactionsInfo(transactions){
+    static _computeTransactionsInfo(transactions){
         let avgPrice = 0;
         let quantity = 0;
         for(const transaction of transactions){

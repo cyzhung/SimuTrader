@@ -3,7 +3,7 @@ const Database = require('../Database');
 class StockPricesRepository extends RepositroyAbstract {
     static tableName = 'stock_prices';
 
-    static async insert(stock_price, { transaction } = {}){
+    static async insert(stock_price,  {transaction} = {}){
         const pool = transaction || Database.getPool();
         const query = `INSERT INTO stock_prices (stock_id, price_date, open_price, close_price, high_price, low_price, volume) 
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -17,7 +17,7 @@ class StockPricesRepository extends RepositroyAbstract {
         }
     }
 
-    static async get(filters = {}, { transaction } = {}) {
+    static async get(filters = {},  {transaction}  = {}) {
         const pool = transaction || Database.getPool();
         let query = `SELECT * FROM ${this.tableName} WHERE 1=1`;
         let values = [];
@@ -62,7 +62,7 @@ class StockPricesRepository extends RepositroyAbstract {
         }
     }
 
-    static async delete(id, { transaction } = {}){
+    static async delete(id,  {transaction}  = {}){
         const pool = transaction || Database.getPool();
         const query = `DELETE FROM stock_prices WHERE price_id = $1`;
         const values = [id];

@@ -5,7 +5,7 @@ class StockRepository extends RepositroyAbstract {
     static tableName = 'stocks';
 
 
-    static async insert(stock, { transaction } = {}){
+    static async insert(stock,  {transaction} = {}){
         const pool = transaction || Database.getPool();
         const query = `INSERT INTO stocks (stock_symbol, stock_name, market_type) 
                         VALUES ($1, $2, $3)
@@ -20,7 +20,7 @@ class StockRepository extends RepositroyAbstract {
         }
     }
 
-    static async update(data, { transaction } = {}){
+    static async update(data,  {transaction} = {}){
         const pool = transaction || Database.getPool();
         const query = `
             UPDATE stocks 
@@ -39,7 +39,7 @@ class StockRepository extends RepositroyAbstract {
         }
     }
 
-    static async delete(id, { transaction } = {}){
+    static async delete(id,  {transaction}  = {}){
         const pool = transaction || Database.getPool();
         const query = `DELETE FROM stocks WHERE stock_id = $1`;
         const values = [id];
@@ -52,12 +52,9 @@ class StockRepository extends RepositroyAbstract {
         }
     }
 
-    static async stockExist(stock_symbol, { transaction } = {}){
-        const pool = transaction || Database.getPool();
-        const query = 'SELECT * FROM stocks WHERE stock_symbol = $1';
-        const values = [stock_symbol];
+    static async stockExist(stock_symbol){
         try{
-            const result = await pool.query(query, values);
+            const result = await this.get({stock_symbol: stock_symbol});
             return result.rows.length > 0;
         }catch(error){
             console.error('Error checking if stock exists:', error);
