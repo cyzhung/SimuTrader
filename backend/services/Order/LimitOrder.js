@@ -4,6 +4,7 @@ class LimitOrder extends OrderAbstract {
     constructor(orderInfo) {
         super(orderInfo);
         this.price = orderInfo.price;
+        this.order_type = "Limit";
     }
 
     validate_order() {

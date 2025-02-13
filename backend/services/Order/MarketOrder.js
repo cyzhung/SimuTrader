@@ -3,6 +3,7 @@ const { OrderAbstract } = require('./OrderAbstract');
 class MarketOrder extends OrderAbstract {
     constructor(orderInfo) {
         super(orderInfo);
+        this.order_type = "Market";
     }
 
     async match() {

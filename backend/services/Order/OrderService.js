@@ -3,9 +3,9 @@ const {NotFoundError, ForbiddenError, ValidationError, OrderError} = require('..
 const OrderFactory = require('./OrderFactory');
 
 class OrderService {
-    static createOrder(orderData) {
+    static async createOrder(orderData) {
         try {
-            const order = OrderFactory.createOrder(orderData);
+            const order = await OrderFactory.createOrder(orderData);
             const validationErrors = order.validate_order();
             
             if (validationErrors.length > 0) {

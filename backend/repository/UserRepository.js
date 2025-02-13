@@ -6,11 +6,11 @@ class UserRepository extends RepositroyAbstract {
     static tableName = 'users';
 
     static async userExist(user_id) {
-        const result = await this.get({ user_id });
+        const result = await this.get({ user_id: user_id });
         return result.rows.length > 0;
     }
 
-    static async insert(user, { transaction } = {}) {
+    static async insert(user,  {transaction} = {}) {
         const pool = transaction || Database.getPool();
         const query = `
             INSERT INTO users (username, email, password_hash, role) 
@@ -28,7 +28,7 @@ class UserRepository extends RepositroyAbstract {
         }
     }
 
-    static async delete(user_id, { transaction } = {}) {
+    static async delete(user_id,  {transaction}  = {}) {
         const pool = transaction || Database.getPool();
         const query = 'DELETE FROM users WHERE user_id = $1';
         const values = [user_id];
@@ -40,7 +40,7 @@ class UserRepository extends RepositroyAbstract {
         }
     }
 
-    static async update(data, { transaction } = {}) {
+    static async update(data,  {transaction}  = {}) {
         const pool = transaction || Database.getPool();
         const query = `UPDATE users SET username = $1, email = $2 WHERE user_id = $3`;
         const values = [data.username, data.email, data.user_id];

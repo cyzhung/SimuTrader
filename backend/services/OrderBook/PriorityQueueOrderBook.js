@@ -104,7 +104,6 @@ class PriorityQueueOrderBook extends OrderBook_abs{
                 }
             }
 
-            console.log(`OrderBook initialized with ${activeOrders.size} active orders`);
         } catch (error) {
             console.error('Error initializing OrderBook:', error);
             throw new OrderError(`OrderBook 初始化失敗: ${error.message}`);
