@@ -4,6 +4,7 @@ from utils.errors import NotFoundError, ForbiddenError, ValidationError, OrderEr
 from backend.models.order.orderFactory import OrderFactory
 from backend.services.orderbook.orderbookService import OrderBookService
 from backend.models.order.order import OrderBase
+from backend.database.database import Database
 class OrderService:
     @staticmethod
     async def create_order(order_data: Dict[str, Any]) -> Any:
@@ -21,19 +22,21 @@ class OrderService:
             ValidationError: 訂單驗證失敗時
         """
         try:
-            order = await OrderFactory.create_order(order_data)
-            validation_errors = order.validate_order()
-            
-            if validation_errors:
-                raise ValidationError(f"訂單驗證失敗: {validation_errors}")
-
+            async with Database.transaction() as client:
+                order = await OrderFactory.create_order(order_data)
+                validation_errors = order.validate_order()
+                
+                if validation_errors:
+                    raise ValidationError(f"訂單驗證失敗: {validation_errors}")
+                order_id = await OrderRepository.insert(order, client)
+                order.order_id = order_id
             return order
             
         except Exception as error:
             raise error
 
     @staticmethod
-    async def cancel_order(order: OrderBase, user_id: int) -> bool:
+    async def cancel_order(order_id: int, user_id: int) -> bool:
         """
         取消訂單
         
@@ -51,16 +54,23 @@ class OrderService:
             OrderError: 取消訂單失敗時
         """
         try:
-            
+            orders = await OrderRepository.get({"order_id": order_id})
 
+            if len(orders)==0:
+                raise NotFoundError("訂單不存在")
+            order = orders[0]
+            if order["user_id"] != user_id:
+                raise ForbiddenError("無權限取消此訂單")
+            
             # 3. 從 OrderBook 中移除訂單
-            await OrderBookService.remove_order(order.order_id)
+            await OrderBookService.remove_order(order_id)
 
-            
+            order = dict(order)
+
             # 4. 更新訂單狀態
             await OrderRepository.update(
-                order['order_id'], 
-                {"status": "cancelled"}
+                order['order_id'],
+                {"status": "canceled"}
             )
 
             return True

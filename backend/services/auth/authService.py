@@ -10,10 +10,14 @@ from backend.database.database import Database
 from backend.models.user.user import User
 
 security = HTTPBearer()
+
+
+
 class AuthService:
     @staticmethod
-    async def login(user, password) -> Dict[str, Any]:
+    async def login(email, password) -> Dict[str, Any]:
         try:
+            user = await AuthService.validate_login(email, password)
 
             is_password_valid = bcrypt.checkpw(
                 password.encode('utf-8'), 
@@ -41,9 +45,10 @@ class AuthService:
 
     @staticmethod
     async def register(email, password, username) -> Dict[str, Any]:
-        async with Database.transaction() as client:
-            try:
-                # 密碼加密
+        try:
+            async with Database.transaction() as client:
+                await AuthService.validateRegister(email, password, username)
+            # 密碼加密
                 password_hash = bcrypt.hashpw(
                     password.encode('utf-8'), 
                     bcrypt.gensalt()
@@ -64,13 +69,13 @@ class AuthService:
                     "role": user["role"]
                 })
 
-                return {
-                    "user": AuthService._sanitize_user(dict(user)),
-                    "token": token
-                }
+            return {
+                "user": AuthService._sanitize_user(dict(user)),
+                "token": token
+            }
 
-            except Exception as error:
-                raise error
+        except Exception as error:
+            raise error
 
     @staticmethod
     def _sanitize_user(user: Dict[str, Any]) -> Dict[str, Any]:
@@ -78,11 +83,12 @@ class AuthService:
         safe_user.pop("password_hash", None)
         return safe_user
     @staticmethod
-    async def delete(user, password):
+    async def delete(email, password):
         """
         用戶刪除
         """
         try:
+            user = await AuthService.validate_login(email, password)
 
             is_password_valid = bcrypt.checkpw(
                 password.encode('utf-8'), 
@@ -96,8 +102,10 @@ class AuthService:
             async with Database.transaction() as client:
                 users = await UserRepository.get({"email": user['email']})
                 user_id = users[0]['user_id']
-                result = await UserRepository.delete(user_id, transaction=client)
-                return result
+                await UserRepository.delete(user_id, transaction=client)
+            return {
+                "user": AuthService._sanitize_user(dict(user)),
+            }
         except Exception as error:
             raise error
     @staticmethod
@@ -155,4 +163,44 @@ class AuthService:
         """
         token = credentials.credentials
         return await AuthService.get_current_user(token)
-        
+    
+
+    @staticmethod
+    async def validate_login(email, password):
+        if not email or not password:
+            raise ValidationError('Email 和密碼為必填項')
+        # 查找用戶
+        result = await UserRepository.get({"email": email})
+        if not len(result):
+            raise ValidationError('帳號或密碼錯誤')
+        user = result[0]
+        return user
+    
+    @staticmethod
+    async def validateRegister(email, password, username):
+    # 驗證必填字段
+        if not email or not password or not username:
+            raise ValidationError('Email、密碼和用戶名為必填項')
+
+        # 驗證 email 格式
+        if not AuthService._validate_email(email):
+            raise ValidationError('無效的 Email 格式')
+
+        # 驗證密碼強度
+        if not AuthService._validate_password(password):
+            raise ValidationError('密碼至少需要 8 個字符')
+
+        # 檢查用戶是否已存在
+        existing_user = await UserRepository.get({"email": email})
+
+        if len(existing_user)>0:
+            raise ValidationError('該 Email 已被註冊')
+    
+    @staticmethod
+    def _validate_email(email: str) -> bool:
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        return bool(re.match(email_regex, email))
+
+    @staticmethod
+    def _validate_password(password: str) -> bool:
+        return len(password) >= 8

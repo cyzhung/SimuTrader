@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
@@ -34,10 +34,14 @@ class OrderBase(BaseModel, ABC):
     quantity: int
     remaining_quantity: int
     order_side: OrderSide
+    order_type: OrderType
     status: OrderStatus = OrderStatus.Pending
     created_at: datetime = Field(default_factory=datetime.now)
 
     def validate_order(self) -> List[Dict[str, str]]:
+        """
+        驗證訂單是否有效
+        """
         errors = []
         if self.quantity <= 0:
             errors.append({

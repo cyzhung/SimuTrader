@@ -1,5 +1,7 @@
 from typing import List, Any, Optional
 from backend.models.orderbook.orderbookAbs import OrderBookAbstract
+from backend.repository.orderRepository import OrderRepository
+from backend.utils.errors import OrderError
 
 from utils.errors import OrderError
 
@@ -35,29 +37,6 @@ class DatabaseOrderBook(OrderBookAbstract):
                 self.buy_order_list.append(order)
         except Exception as error:
             raise OrderError(f"添加訂單失敗: {str(error)}")
-
-    async def match_order(self, order: Any) -> bool:
-        """
-        匹配訂單
-        
-        從數據庫中尋找匹配的訂單
-        
-        Args:
-            order: 要匹配的訂單
-            
-        Returns:
-            bool: 是否找到匹配的訂單
-            
-        Raises:
-            OrderError: 訂單匹配失敗時
-        """
-        try:
-            # 從數據庫中查找匹配的訂單
-            result = await DatabaseUtils.match_order(order)
-            return bool(result.rows)
-        except Exception as error:
-            raise OrderError(f"訂單匹配失敗: {str(error)}")
-
     async def initialize(self) -> None:
         """
         初始化訂單簿
@@ -99,7 +78,7 @@ class DatabaseOrderBook(OrderBookAbstract):
         """
         try:
             # 從數據庫中移除訂單
-            await DatabaseUtils.remove_order(order_id)
+            await DatabaseRepository.remove_order(order_id)
             # 從內存中移除訂單
             self.buy_order_list = [
                 order for order in self.buy_order_list 

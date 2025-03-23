@@ -3,7 +3,7 @@ from .limitOrder import LimitOrder
 from .marketOrder import MarketOrder
 from backend.repository.stocksRepository import StockRepository
 from backend.utils.errors import ValidationError
-from backend.models.order.order import OrderSide
+from backend.models.order.order import OrderType
 class OrderFactory:
     @staticmethod
     async def create_order(order_info: Dict[str, Any]) -> Union[LimitOrder, MarketOrder]:
@@ -24,9 +24,9 @@ class OrderFactory:
             如果沒有提供 stock_id，會根據 stock_symbol 查詢
         """
         # 如果沒有 stock_id，根據 stock_symbol 查詢
-        if not order_info.stock_id:
+        if not order_info['stock_id']:
             stock_result = await StockRepository.get({
-                "stock_symbol": order_info.stock_symbol
+                "stock_symbol": order_info['stock_symbol']
             })
             
             if not stock_result:
@@ -35,8 +35,7 @@ class OrderFactory:
             order_info["stock_id"] = stock_result[0]["stock_id"]
 
         # 根據是否有價格決定創建何種訂單
-        if "price" in order_info and order_info["price"] is not None:
-            return LimitOrder(order_info)
+        if order_info['order_type'] == OrderType.Limit:
+            return LimitOrder(**order_info)
         else:
-            print(order_info)
-            return MarketOrder(order_info)
+            return MarketOrder(**order_info)

@@ -1,6 +1,6 @@
-from database.database import Database
+from backend.database.database import Database
 from utils.errors import DatabaseError
-from repository.repositoryAbs import RepositoryAbstract
+from backend.repository.repositoryAbs import RepositoryAbstract
 
 class TransactionLogsRepository(RepositoryAbstract):
     table_name = 'transaction_log'

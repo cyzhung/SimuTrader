@@ -26,10 +26,6 @@ class RegisterRequest(LoginRequest):
     username: str
 
 class UserResponse(BaseModel):
-    user_id: int
-    username: str
-    email: str
-    role: str
-    # 不包含密碼欄位，確保安全性
-    class Config:
-        from_attributes = True
+    success: bool
+    data: User
+

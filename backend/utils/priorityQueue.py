@@ -14,12 +14,12 @@ class PriorityQueue:
             # 最大堆
             lambda a, b: (
                 b.price - a.price if a.price != b.price 
-                else b.timestamp - a.timestamp
+                else (b.created_at - a.created_at).total_seconds()
             ) if is_max_heap
             # 最小堆
             else (
                 a.price - b.price if a.price != b.price 
-                else a.timestamp - b.timestamp
+                else (a.created_at - b.created_at).total_seconds()
             )
         )
         self.heap: List[Any] = []
@@ -101,6 +101,7 @@ class PriorityQueue:
         
         while index > 0:
             parent_index = (index - 1) // 2
+
             if self.comparator(self.heap[index], self.heap[parent_index]) >= 0:
                 break
             self._swap(index, parent_index)

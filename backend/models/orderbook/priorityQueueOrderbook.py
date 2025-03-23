@@ -2,12 +2,10 @@ from typing import Dict, Any, Optional, Mapping
 from backend.utils.priorityQueue import PriorityQueue
 from backend.models.order.order import  OrderSide, OrderType, OrderBase
 from backend.models.orderbook.orderbookAbs import OrderBookAbstract
-from backend.models.order.limitOrder import LimitOrder
-from backend.models.order.marketOrder import MarketOrder
-from backend.repository.transactionLogsRepository import TransactionLogsRepository
+from backend.models.order.orderFactory import OrderFactory
 from backend.repository.orderRepository import OrderRepository
 from backend.utils.errors import OrderError
-
+from backend.models.order.order import OrderStatus
 class PriorityQueueOrderBook(OrderBookAbstract):
     _instance: Optional['PriorityQueueOrderBook'] = None
     
@@ -17,8 +15,8 @@ class PriorityQueueOrderBook(OrderBookAbstract):
         """
         super().__init__()
         self.order_books: Dict[int, Dict[str, PriorityQueue]] = {}  # stock_id -> {buyQueue, sellQueue}
-        self.order_map: Dict[int, Any] = {}  # order_id -> order (reference)
-        self.market_orders: list[OrderBase] = []
+        self.order_map: Dict[int, OrderBase] = {}  # order_id -> OrderBase (reference)
+        self.market_orders: Dict[int, list[OrderBase]] = {}  # stock_id -> [OrderBase]
     @classmethod
     def get_instance(cls) -> 'PriorityQueueOrderBook':
         """
@@ -60,7 +58,9 @@ class PriorityQueueOrderBook(OrderBookAbstract):
         """
         try:
             if order.order_type == OrderType.Market:
-                self.market_orders.append(order)
+                self.market_orders[order.stock_id] = self.market_orders.get(order.stock_id, [])
+                self.market_orders[order.stock_id].append(order)
+                self.order_map[order.order_id] = order
             else:
                 queues = self._get_order_queues(order.stock_id)
                 if order.order_side == "Buy":
@@ -79,73 +79,31 @@ class PriorityQueueOrderBook(OrderBookAbstract):
             OrderError: 初始化失敗時
         """
         try:
-            # 1. 獲取所有未完成的交易事件
-            transaction_logs = await TransactionLogsRepository.get({
-                "event_type": ["NEW_ORDER", "MATCHED_ORDER"],
-                "order_by": "log_timestamp ASC"  # 按時間順序處理
-            })
+            pending_orders = await OrderRepository.get({"status": OrderStatus.Pending})
+            partial_orders = await OrderRepository.get({"status": OrderStatus.Partial})
 
-            # 2. 重建訂單狀態
-            active_orders: Dict[int, Dict[str, Any]] = {}  # 暫存活動訂單
+            activate_orders = pending_orders + partial_orders
 
-            for log in transaction_logs:
-                if log['event_type'] == "NEW_ORDER":
-                    # 創建新訂單
-                    order_id = log.get('buy_order_id') or log.get('sell_order_id')
-                    order_side = OrderSide.Buy if log.get('buy_order_id') else orderSide.Sell
-                    order_info = await OrderRepository.get({
-                        "order_id": order_id
-                    })
-                    order_info = order_info[0]  #第一筆資料
-
-                    if order_info['price'] is not None:
-                        order = LimitOrder(
-                                order_id = order_id,
-                                user_id = order_info["user_id"],
-                                stock_id = order_info["stock_id"],
-                                order_side = order_side,
-                                order_type= order_info["order_type"],
-                                price = log['price'],
-                                quantity = log['quantity'],
-                                remaining_quantity = log['quantity'],
-                                status= "pending"
-                        )
-                    else:
-                        order = MarketOrder(
-                                order_id = order_id,
-                                user_id = order_info["user_id"],
-                                stock_id = order_info["stock_id"],
-                                order_side = order_side,
-                                order_type = order_info["order_type"],
-                                quantity = log['quantity'],
-                                remaining_quantity = log['quantity'],
-                                status = "pending"
-                        )
-                    active_orders[order_id] = order
-                
-                elif log['event_type'] == "MATCHED_ORDER":
-                    # 更新訂單狀態
-                    if log['buy_order_id'] and log['buy_order_id'] in active_orders:
-                        buy_order = active_orders[log['buy_order_id']]
-                        buy_order["remaining_quantity"] -= log['quantity']
-                        if buy_order["remaining_quantity"] <= 0:
-                            active_orders.pop(log['buy_order_id'])
-                    
-                    if log['sell_order_id'] and log['sell_order_id'] in active_orders:
-                        sell_order = active_orders[log['sell_order_id']]
-                        sell_order["remaining_quantity"] -= log['quantity']
-                        if sell_order["remaining_quantity"] <= 0:
-                            active_orders.pop(log['sell_order_id'])
-
-            # 3. 將活動訂單加入 OrderBook
-            for order in active_orders.values():
-                if order.remaining_quantity > 0:
+            for order in activate_orders:
+                order = await OrderFactory.create_order(order)
+                if(order.status != OrderStatus.Cancelled and order.status != OrderStatus.Filled):
                     self.add_order(order)
 
         except Exception as error:
             print(f"Error initializing OrderBook: {error}")
             raise OrderError(f"OrderBook 初始化失敗: {str(error)}")
 
+    def get_order(self, order_id: int) -> OrderBase:
+        """
+        獲取指定訂單ID的訂單
+        
+        Args:
+            order_id: 訂單ID
+        """
+        if order_id not in self.order_map:
+            raise OrderError("訂單不存在")
+        return self.order_map.get(order_id)
+    
     def clear_order_book(self) -> None:
         """清空所有訂單（僅用於測試）"""
         for queues in self.order_books.values():
@@ -176,12 +134,13 @@ class PriorityQueueOrderBook(OrderBookAbstract):
             OrderError: 訂單不存在時
         """
         order = self.order_map.get(order_id)
+
         if not order:
             raise OrderError("訂單不存在")
 
         order.status = "cancelled"
         self.order_map.pop(order_id, None)
-
+        
     def get_order_queues(self, stock_id: int) -> Dict[str, PriorityQueue]:
         """
         獲取指定股票的訂單隊列
@@ -255,6 +214,7 @@ class PriorityQueueOrderBook(OrderBookAbstract):
             order_id: 訂單ID
         """
         order = self.order_map.get(order_id)
+
         if not order:
             raise OrderError("訂單不存在")
 

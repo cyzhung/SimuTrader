@@ -46,10 +46,10 @@ class UserRepository(RepositoryAbstract):
             RETURNING *
         """
         values = [
-            user["username"], 
-            user["email"], 
-            user["password_hash"], 
-            user["role"]
+            user.username, 
+            user.email, 
+            user.password_hash, 
+            user.role
         ]
 
         try:

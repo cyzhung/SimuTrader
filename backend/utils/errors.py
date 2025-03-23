@@ -16,7 +16,7 @@ class BaseCustomException(HTTPException):
                 "name": name,
                 "message": message,
                 "status": status_code,
-                #"trace": error_trace
+                "trace": error_trace
             }
         }
         
@@ -77,3 +77,7 @@ class ForbiddenError(BaseCustomException):
 class OrderError(BaseCustomException):
     def __init__(self, message="訂單錯誤"):
         super().__init__(400, "OrderError", message)
+
+class MatchingError(BaseCustomException):
+    def __init__(self, message="撮合錯誤"):
+        super().__init__(400, "MatchingError", message)

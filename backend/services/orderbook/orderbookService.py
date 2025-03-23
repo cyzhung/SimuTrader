@@ -1,15 +1,18 @@
 import os
 import dotenv
-from typing import Optional, Any, Dict
+
+from typing import Optional, Any, Dict, List
 from backend.models.orderbook.priorityQueueOrderbook import PriorityQueueOrderBook
 from backend.models.orderbook.databaseOrderbook import DatabaseOrderBook
 from backend.utils.errors import OrderError
 from backend.models.orderbook.orderbook import OrderBook
+from backend.repository.orderRepository import OrderRepository
+from backend.models.order.order import OrderBase, OrderStatus, OrderSide
 
 dotenv.load_dotenv()
 
 class OrderBookService:
-    _order_books: Dict[str, OrderBook] = {}
+    _orderBook: PriorityQueueOrderBook = None
     @classmethod
     async def initialize(cls) -> None:
         """
@@ -18,13 +21,13 @@ class OrderBookService:
         Raises:
             OrderError: 初始化失敗時
         """
-        if not cls._order_books:
-            cls._order_books = (
+        if not cls._orderBook:
+            cls._orderBook = (
                 PriorityQueueOrderBook.get_instance() 
                 if os.getenv("ORDER_BOOK") == "PriorityQueue"
                 else DatabaseOrderBook.get_instance()
             )
-            await cls._order_books.initialize()
+            await cls._orderBook.initialize()
 
     @classmethod
     async def add_order(cls, order: Any) -> None:
@@ -38,9 +41,9 @@ class OrderBookService:
             OrderError: 訂單處理失敗時
         """
         try:
-            if not cls._order_books:
+            if not cls._orderBook:
                 await cls.initialize()
-            cls._order_books.add_order(order)
+            cls._orderBook.add_order(order)
         except Exception as error:
             raise OrderError(f"訂單處理失敗: {str(error)}")
 
@@ -56,9 +59,9 @@ class OrderBookService:
             OrderError: 訂單處理失敗時
         """
         try:
-            if not cls._order_books:
+            if not cls._orderBook:
                 await cls.initialize()
-            await cls._order_books.remove_order(order_id)
+            cls._orderBook.remove_order(order_id)
         except Exception as error:
             raise OrderError(f"訂單處理失敗: {str(error)}")
 
@@ -76,9 +79,9 @@ class OrderBookService:
         Raises:
             OrderError: OrderBook未初始化時
         """
-        if not cls._order_books:
+        if not cls._orderBook:
             raise OrderError("OrderBook 未初始化")
-        return cls._order_books.get_lowest_sell_order(stock_id)
+        return cls._orderBook.get_lowest_sell_order(stock_id)
 
     @classmethod
     def get_highest_buy_order(cls, stock_id: int) -> Any:
@@ -94,9 +97,9 @@ class OrderBookService:
         Raises:
             OrderError: OrderBook未初始化時
         """
-        if not cls._order_books:
+        if not cls._orderBook:
             raise OrderError("OrderBook 未初始化")
-        return cls._order_books.get_highest_buy_order(stock_id)
+        return cls._orderBook.get_highest_buy_order(stock_id)
 
     @classmethod
     def get_order_book(cls, stock_id: str) -> OrderBook:
@@ -109,9 +112,7 @@ class OrderBookService:
         Raises:
             OrderError: OrderBook未初始化時
         """
-        if stock_id not in cls._order_books:
-            cls._order_books[stock_id] = OrderBook(stock_id)
-        return cls._order_books[stock_id]
+        return cls._orderBook.get_order_queues(stock_id)
 
     @classmethod
     async def update_user_holdings(cls, order_id: int, transaction_data: dict) -> Any:
@@ -125,4 +126,16 @@ class OrderBookService:
         Returns:
             更新結果
         """
-        return await cls._order_books.update_user_holdings(order_id, transaction_data)
+        return await cls._orderBook.update_user_holdings(order_id, transaction_data)
+    
+    @classmethod
+    async def get_pending_orders(cls) -> List[OrderBase]:
+        """
+        獲取所有待搓合的訂單
+        
+        Returns: List[BaseOrder]
+        """
+        if not cls._orderBook:
+            raise OrderError("OrderBook 未初始化")
+        orders = await OrderRepository.get({"status": OrderStatus.Pending, "order_side": OrderSide.Buy})
+        return [cls._orderBook.get_order(order["order_id"]) for order in orders]

@@ -8,11 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 sys.path.append('/home/cyzhung/Desktop/SimuTrader')
+from backend.routes import orderController, stockController, transactionController, userController
 from backend.database.database import Database
 from backend.services.orderbook.orderbookService import OrderBookService
-
-# 導入路由
-from routes import stocks, order, transaction, user
+from backend.services.matching.matchingWorker import MatchingWorker
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
@@ -29,18 +28,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         # 初始化數據庫
         await Database.initialize()
         print("Database connection initialized successfully")
-
         # 初始化訂單簿
         await OrderBookService.initialize()
         print("OrderBook initialized successfully")
         
+        print("Starting matching worker")
+        matchingWorker = MatchingWorker.get_instance()
+        asyncio.create_task(matchingWorker.start())
+        print("Matching worker started")
+
+
         yield  # 應用運行中
         
         # 關閉時的清理
         print("Shutting down...")
         await Database.close()
         print("Database connection closed")
-        
+        await matchingWorker.stop()
+        print("Matching worker stopped")
     except Exception as error:
         print(f"Error during startup/shutdown: {error}")
         sys.exit(1)
@@ -58,10 +63,10 @@ app.add_middleware(
 )
 
 # 註冊路由
-app.include_router(stocks.router, prefix="/api/stocks", tags=["stocks"])
-app.include_router(order.router, prefix="/api/orders", tags=["orders"])
-app.include_router(transaction.router, prefix="/api/transactions", tags=["transactions"])
-app.include_router(user.router, prefix="/api/users", tags=["users"])
+app.include_router(stockController.router, prefix="/api/stocks", tags=["stocks"])
+app.include_router(orderController.router, prefix="/api/orders", tags=["orders"])
+app.include_router(transactionController.router, prefix="/api/transactions", tags=["transactions"])
+app.include_router(userController.router, prefix="/api/users", tags=["users"])
 
 # 根路由
 @app.get("/")
