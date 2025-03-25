@@ -191,6 +191,10 @@ class PriorityQueueOrderBook(OrderBookAbstract):
             Optional[Any]: 最低賣單或None
         """
         queues = self._get_order_queues(stock_id)
+        if queues["sellQueue"].isEmpty():
+            return None
+        while(queues["sellQueue"].get_top().status == OrderStatus.Cancelled):
+            queues["sellQueue"].dequeue()
         return queues["sellQueue"].get_top()
 
     def get_highest_buy_order(self, stock_id: int) -> Optional[Any]:
@@ -204,7 +208,12 @@ class PriorityQueueOrderBook(OrderBookAbstract):
             Optional[Any]: 最高買單或None
         """
         queues = self._get_order_queues(stock_id)
+        if queues["buyQueue"].isEmpty():
+            return None
+        while(queues["buyQueue"].get_top().status == OrderStatus.Cancelled):
+            queues["buyQueue"].dequeue()
         return queues["buyQueue"].get_top()
+
     
     def delete_order(self, order_id: int) -> None:
         """

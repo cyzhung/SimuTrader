@@ -1,10 +1,11 @@
 from typing import Dict, Any
 from backend.repository.orderRepository import OrderRepository
-from utils.errors import NotFoundError, ForbiddenError, ValidationError, OrderError
+from backend.utils.errors import NotFoundError, ForbiddenError, ValidationError, OrderError
 from backend.models.order.orderFactory import OrderFactory
 from backend.services.orderbook.orderbookService import OrderBookService
-from backend.models.order.order import OrderBase
+from backend.models.order.order import OrderSide
 from backend.database.database import Database
+from backend.repository.userPositionRepository import UserPositionRepository
 class OrderService:
     @staticmethod
     async def create_order(order_data: Dict[str, Any]) -> Any:
@@ -23,6 +24,18 @@ class OrderService:
         """
         try:
             async with Database.transaction() as client:
+                if order_data['order_side'] == OrderSide.Sell:
+                    userPosition = await UserPositionRepository.get({
+                    'user_id':order_data['user_id'],
+                       'stock_id':order_data['stock_id'],
+                    })
+                    
+                    if not userPosition:
+                         raise OrderError("用戶持股不存在")
+                    userPosition = userPosition[0]
+                    if userPosition['quantity'] < order_data['quantity']:
+                        raise OrderError("用戶持股不足")
+                    
                 order = await OrderFactory.create_order(order_data)
                 validation_errors = order.validate_order()
                 

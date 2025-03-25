@@ -1,5 +1,7 @@
+import sys
+
 from typing import List, Any, Callable, Optional
-from utils.errors import OrderBookError
+from backend.utils.errors import OrderBookError
 
 class PriorityQueue:
     def __init__(self, is_max_heap: bool = False):
@@ -53,15 +55,15 @@ class PriorityQueue:
         Raises:
             OrderBookError: 當隊列為空或出隊失敗時
         """
-        if self.size() == 0:
+        if len(self) == 0:
             raise OrderBookError("隊列為空")
 
         try:
-            if self.size() == 1:
+            if len(self) == 1:
                 return self.heap.pop()
 
             top = self.heap[0]
-            self._swap(0, self.size() - 1)
+            self._swap(0, len(self) - 1)
             self.heap.pop()
             self._heapify_down()
             return top
@@ -78,11 +80,11 @@ class PriorityQueue:
         Raises:
             OrderBookError: 當隊列為空時
         """
-        if self.size() == 0:
-            raise OrderBookError("隊列為空")
+        if len(self) == 0:
+            raise None
         return self.heap[0]
 
-    def size(self) -> int:
+    def __len__(self) -> int:
         """
         獲取隊列大小
         
@@ -97,7 +99,7 @@ class PriorityQueue:
 
     def _heapify_up(self) -> None:
         """向上調整堆"""
-        index = self.size() - 1
+        index = len(self) - 1
         
         while index > 0:
             parent_index = (index - 1) // 2
@@ -110,7 +112,7 @@ class PriorityQueue:
     def _heapify_down(self) -> None:
         """向下調整堆"""
         index = 0
-        last_index = self.size() - 1
+        last_index = len(self) - 1
         
         while True:
             left_child = index * 2 + 1
@@ -140,3 +142,15 @@ class PriorityQueue:
             j: 第二個元素的索引
         """
         self.heap[i], self.heap[j] = self.heap[j], self.heap[i]
+
+    def isEmpty(self) -> bool:
+        """
+        檢查隊列是否為空
+        
+        Returns:
+            bool: 隊列是否為空
+        """
+        if len(self) == 0:
+            return True
+        return False
+    

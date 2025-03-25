@@ -23,7 +23,6 @@ async def root(current_user: Dict = Depends(get_current_user)):
 
 @router.get("/search")
 async def search_stocks(
-    current_user: Dict = Depends(get_current_user),
     stock_symbol: Optional[str] = None,
     stock_name: Optional[str] = None,
     market_type: Optional[str] = None

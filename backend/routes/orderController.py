@@ -5,9 +5,9 @@ from backend.repository.orderRepository import OrderRepository
 
 from backend.models.user.user import User
 from backend.services.auth.authService import AuthService
-from backend.services.transaction.transactionService import TransactionService
 from backend.services.order.orderService import OrderService
 from backend.services.orderbook.orderbookService import OrderBookService
+
 router = APIRouter()
 get_current_user = AuthService.get_current_user_dependency
 

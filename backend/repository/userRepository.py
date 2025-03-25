@@ -1,11 +1,11 @@
 from typing import Dict, Any, Optional
 from backend.repository.repositoryAbs import RepositoryAbstract
 from backend.database.database import Database
-from utils.errors import DatabaseError
+from backend.utils.errors import DatabaseError
 
 class UserRepository(RepositoryAbstract):
     table_name = "users"
-
+    key = 'user_id'
     @classmethod
     async def user_exist(cls, user_id: int) -> bool:
         """
@@ -85,35 +85,6 @@ class UserRepository(RepositoryAbstract):
             print(f"Error deleting user: {error}")
             raise DatabaseError(f"用戶資料庫刪除錯誤: {str(error)}")
 
-    @classmethod
-    async def update(
-        cls, 
-        data: Dict[str, Any], 
-        transaction: Optional[Any] = None
-    ) -> None:
-        """
-        更新用戶信息
-        
-        Args:
-            data: 更新的用戶數據
-            transaction: 事務對象
-            
-        Raises:
-            DatabaseError: 數據庫操作錯誤
-        """
-        pool = transaction or Database.get_pool()
-        query = """
-            UPDATE users 
-            SET username = $1, email = $2 
-            WHERE user_id = $3
-        """
-        values = [data["username"], data["email"], data["user_id"]]
-        
-        try:
-            await pool.query(query, values)
-        except Exception as error:
-            print(f"Error updating user: {error}")
-            raise DatabaseError(f"用戶資料庫更新錯誤: {str(error)}")
 
     @classmethod
     async def get_by_email(

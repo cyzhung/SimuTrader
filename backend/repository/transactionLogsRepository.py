@@ -1,10 +1,10 @@
 from backend.database.database import Database
-from utils.errors import DatabaseError
+from backend.utils.errors import DatabaseError
 from backend.repository.repositoryAbs import RepositoryAbstract
 
 class TransactionLogsRepository(RepositoryAbstract):
     table_name = 'transaction_log'
-
+    key = 'log_id'
     @classmethod
     async def insert(cls, data, transaction=None):
         pool = transaction or Database.get_pool()

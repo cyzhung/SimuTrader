@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
@@ -18,8 +18,10 @@ class OrderStatus(str, Enum):
     Partial = "partial"
     Cancelled = "cancelled"
 
+
 # API 請求模型
 class OrderRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     order_type: OrderType
     order_side: OrderSide
     stock_id: int
@@ -28,6 +30,7 @@ class OrderRequest(BaseModel):
 
 # 基礎訂單模型
 class OrderBase(BaseModel, ABC):
+    model_config = ConfigDict(from_attributes=True)
     user_id: int
     order_id: Optional[int] = None
     stock_id: int
@@ -50,3 +53,10 @@ class OrderBase(BaseModel, ABC):
             })
         return errors
 
+
+class MatchRecord(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    buy_order: OrderBase
+    sell_order: OrderBase
+    quantity: int
+    price: float

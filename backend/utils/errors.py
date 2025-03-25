@@ -16,7 +16,7 @@ class BaseCustomException(HTTPException):
                 "name": name,
                 "message": message,
                 "status": status_code,
-                "trace": error_trace
+                #"trace": error_trace
             }
         }
         

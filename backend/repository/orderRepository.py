@@ -6,7 +6,7 @@ from typing import Dict
 
 class OrderRepository(RepositoryAbstract):
     table_name = 'orders'
-
+    key = 'order_id'
     @classmethod
     async def insert(cls, order, transaction=None):
         pool = transaction or Database.get_pool()
@@ -50,55 +50,3 @@ class OrderRepository(RepositoryAbstract):
         except Exception as error:
             print('Error deleting order:', error)
             raise DatabaseError(f"訂單資料庫刪除錯誤: {str(error)}")
-
-    @classmethod
-    async def update(cls, order_id: int, data: Dict, transaction=None):
-        """
-        更新訂單
-        
-        Args:
-            order_id: 訂單ID
-            data: 要更新的字段，可以包含 price, remaining_quantity, status 中的任意幾個
-            transaction: 事務對象
-        """
-        pool = transaction or Database.get_pool()
-        
-        # 構建更新字段
-        update_fields = []
-        values = []
-        param_count = 1
-
-        if 'price' in data:
-            update_fields.append(f"price = ${param_count}")
-            values.append(data['price'])
-            param_count += 1
-
-        if 'remaining_quantity' in data:
-            update_fields.append(f"remaining_quantity = ${param_count}")
-            values.append(data['remaining_quantity'])
-            param_count += 1
-
-        if 'status' in data:
-            update_fields.append(f"status = ${param_count}")
-            values.append(data['status'])
-            param_count += 1
-
-        if not update_fields:
-            raise ValueError("沒有提供要更新的字段")
-
-        # 添加 order_id 到值列表
-        values.append(order_id)
-        
-        query = f"""
-            UPDATE orders 
-            SET {', '.join(update_fields)}
-            WHERE order_id = ${param_count}
-            RETURNING *
-        """
-
-        try:
-            result = await pool.fetchrow(query, *values)
-            return dict(result) if result else None
-        except Exception as error:
-            print('Error updating order:', error)
-            raise DatabaseError(f"訂單資料庫更新錯誤: {str(error)}")

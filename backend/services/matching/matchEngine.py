@@ -1,13 +1,13 @@
 from typing import List, Dict, Any, Optional
-from backend.models.order.order import OrderSide, OrderType, OrderStatus
+from backend.models.order.order import OrderSide, OrderType, OrderStatus, OrderBase
 from backend.services.orderbook.orderbookService import OrderBookService
 from backend.repository.orderRepository import OrderRepository
-from utils.errors import MatchingError
-
+from backend.utils.errors import MatchingError
+from backend.models.order.order import MatchRecord
 class MatchEngine:
     """撮合引擎，負責訂單的撮合邏輯"""
     @classmethod
-    async def match_market_order(cls, order: Any) -> List[Dict[str, Any]]:
+    async def match_market_order(cls, order: OrderBase) -> List[Dict[str, Any]]:
         """
         市價單撮合
         立即以當前最優價格成交
@@ -26,7 +26,9 @@ class MatchEngine:
 
                 if not opposite_order:
                     raise MatchingError("沒有可撮合的訂單")
-
+                if order.status == OrderStatus.Pending:
+                    order.status = OrderStatus.Partial
+                    await OrderRepository.update(order.order_id, {"status": order.status})
                 # 計算成交數量
                 match_quantity = min(
                     remaining_quantity,
@@ -34,12 +36,12 @@ class MatchEngine:
                 )
 
                 # 記錄成交
-                match_record = {
-                    "order_id": order.order_id,
-                    "opposite_order_id": opposite_order.order_id,
-                    "price": opposite_order.price,
-                    "quantity": match_quantity
-                }
+                match_record = MatchRecord(
+                    buy_order = order,
+                    sell_order = opposite_order,
+                    quantity = match_quantity,
+                    price = opposite_order.price
+                )
                 matches.append(match_record)
 
                 # 更新剩餘數量
@@ -88,12 +90,12 @@ class MatchEngine:
                 )
 
                 if not opposite_order:
-                    break  # 沒有可撮合的訂單，退出
+                    raise MatchingError("沒有可撮合的訂單")
 
                 # 檢查價格是否滿足條件
                 if (order.order_side == OrderSide.Buy and order.price < opposite_order.price) or \
                    (order.order_side == OrderSide.Sell and order.price > opposite_order.price):
-                    break  # 價格不滿足條件，退出
+                    raise MatchingError("價格不滿足條件")
 
                 # 計算成交數量
                 match_quantity = min(
@@ -102,12 +104,12 @@ class MatchEngine:
                 )
 
                 # 記錄成交
-                match_record = {
-                    "order_id": order.order_id,
-                    "opposite_order_id": opposite_order.order_id,
-                    "price": opposite_order.price,
-                    "quantity": match_quantity
-                }
+                match_record = MatchRecord(
+                    buy_order = order,
+                    sell_order = opposite_order,
+                    quantity = match_quantity,
+                    price = opposite_order.price
+                )
                 matches.append(match_record)
 
                 # 更新剩餘數量
@@ -133,13 +135,8 @@ class MatchEngine:
             elif remaining_quantity < order.quantity:
                 await OrderRepository.update(order.order_id, {"status": OrderStatus.Partial})
                 await OrderRepository.update(order.order_id, {"remaining_quantity": remaining_quantity})
-                # 部分成交的限價單需要重新加入訂單簿
-                await OrderBookService.add_order(order)
-            else:
-                # 完全沒有成交，加入訂單簿
-                await OrderBookService.add_order(order)
-
             return matches
 
         except Exception as error:
             raise MatchingError(f"限價單撮合失敗: {str(error)}")
+    

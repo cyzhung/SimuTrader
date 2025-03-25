@@ -2,12 +2,12 @@ import re
 import bcrypt
 from typing import Dict, Any
 from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from utils.errors import ValidationError, AuthenticationError
+from fastapi.security import HTTPBearer
+from backend.utils.errors import ValidationError, AuthenticationError
 from backend.repository.userRepository import UserRepository
 from backend.services.auth.jwtService import JwtService
 from backend.database.database import Database
-from backend.models.user.user import User
+from backend.models.user.user import RegisterRequest, User, RepositoryUser
 
 security = HTTPBearer()
 
@@ -55,12 +55,11 @@ class AuthService:
                 ).decode('utf-8')
 
                 # 創建用戶
-                user = await UserRepository.insert({
-                    "email": email,
-                    "password_hash": password_hash,
-                    "username": username,
-                    "role": "user"
-                }, transaction=client)
+                user = await UserRepository.insert(RepositoryUser(
+                    email = email,
+                    password_hash = password_hash,
+                    username = username,
+                ), transaction=client)
 
                 # 生成 token
                 token = JwtService.generate_token({

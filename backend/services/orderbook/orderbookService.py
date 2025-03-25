@@ -137,5 +137,6 @@ class OrderBookService:
         """
         if not cls._orderBook:
             raise OrderError("OrderBook 未初始化")
-        orders = await OrderRepository.get({"status": OrderStatus.Pending, "order_side": OrderSide.Buy})
-        return [cls._orderBook.get_order(order["order_id"]) for order in orders]
+        pending_orders = await OrderRepository.get({"status": OrderStatus.Pending, "order_side": OrderSide.Buy})
+        partial_orders = await OrderRepository.get({"status": OrderStatus.Partial, "order_side": OrderSide.Buy})
+        return [cls._orderBook.get_order(order["order_id"]) for order in pending_orders + partial_orders]

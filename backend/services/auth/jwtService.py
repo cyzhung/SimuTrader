@@ -1,9 +1,9 @@
 import jwt
 import os
 import dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
-from utils.errors import AuthenticationError
+from backend.utils.errors import AuthenticationError
 
 dotenv.load_dotenv()
 
@@ -29,7 +29,7 @@ class JwtService:
             AuthenticationError: 當令牌生成失敗時
         """
         try:
-            payload["exp"] = datetime.utcnow() + cls._ACCESS_TOKEN_EXPIRES_IN
+            payload["exp"] = datetime.now(timezone.utc) + cls._ACCESS_TOKEN_EXPIRES_IN
             return jwt.encode(
                 payload,
                 cls._ACCESS_TOKEN_SECRET,
@@ -53,7 +53,7 @@ class JwtService:
             AuthenticationError: 當令牌生成失敗時
         """
         try:
-            payload["exp"] = datetime.utcnow() + cls._REFRESH_TOKEN_EXPIRES_IN
+            payload["exp"] = datetime.now(timezone.utc) + cls._REFRESH_TOKEN_EXPIRES_IN
             return jwt.encode(
                 payload,
                 cls._REFRESH_TOKEN_SECRET,

@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-sys.path.append('/home/cyzhung/Desktop/SimuTrader')
+sys.path.append('..')
 from backend.routes import orderController, stockController, transactionController, userController
 from backend.database.database import Database
 from backend.services.orderbook.orderbookService import OrderBookService

@@ -4,10 +4,10 @@ from backend.repository.transactionLogsRepository import TransactionLogsReposito
 from backend.repository.orderRepository import OrderRepository
 from backend.repository.userRepository import UserRepository
 from backend.repository.stocksRepository import StockRepository
-from backend.repository.userStocksRepository import UserStocksRepository
-#from backend.services.orderbook.orderbookService import OrderBookService
+from backend.services.userPosition.userPositionService import UserPositionService
+from backend.services.orderbook.orderbookService import OrderBookService
 from backend.services.order.orderService import OrderService
-from utils.errors import ValidationError
+from backend.utils.errors import ValidationError
 
 class TransactionService:
     @staticmethod
@@ -151,13 +151,13 @@ class TransactionService:
         })
         stock_id = stock_result.rows[0]["stock_id"]
 
-        user_stocks = await UserStocksRepository.get({
+        user_stocks = await UserPositionService.get({
             "user_id": user_id,
             "stock_id": stock_id
         })
 
         if not user_stocks.rows:
-            await UserStocksRepository.insert({
+            await UserPositionService.insert({
                 "user_id": transaction_data["user_id"],
                 "stock_id": transaction_data["stock_id"],
                 "quantity": transaction["quantity"],
@@ -171,7 +171,7 @@ class TransactionService:
                 transaction["price"] * transaction["quantity"]
             ) / new_quantity
             
-            await UserStocksRepository.update({
+            await UserPositionService.update({
                 "user_id": transaction_data["user_id"],
                 "stock_id": transaction_data["stock_id"],
                 "quantity": new_quantity,
@@ -185,7 +185,7 @@ class TransactionService:
         client: Any
     ) -> None:
         """更新賣方持股"""
-        current_holding = await UserStocksRepository.get({
+        current_holding = await UserPositionService.get({
             "user_id": transaction_data["user_id"],
             "stock_id": transaction_data["stock_id"]
         })
@@ -193,12 +193,12 @@ class TransactionService:
         new_quantity = current_holding.rows[0]["quantity"] - transaction["quantity"]
         
         if new_quantity == 0:
-            await UserStocksRepository.delete({
+            await UserPositionService.delete({
                 "user_id": transaction_data["user_id"],
                 "stock_id": transaction_data["stock_id"]
             }, client)
         else:
-            await UserStocksRepository.update({
+            await UserPositionService.update({
                 "user_id": transaction_data["user_id"],
                 "stock_id": transaction_data["stock_id"],
                 "quantity": new_quantity
@@ -225,7 +225,7 @@ class TransactionService:
         client: Any
     ) -> None:
         """驗證用戶持股"""
-        user_stocks = await UserStocksRepository.get({
+        user_stocks = await UserPositionService.get({
             "user_id": transaction_data["user_id"],
             "stock_id": transaction_data["stock_id"]
         }, transaction=client)

@@ -3,7 +3,7 @@ from backend.models.orderbook.orderbookAbs import OrderBookAbstract
 from backend.repository.orderRepository import OrderRepository
 from backend.utils.errors import OrderError
 
-from utils.errors import OrderError
+from backend.utils.errors import OrderError
 
 class DatabaseOrderBook(OrderBookAbstract):
     """

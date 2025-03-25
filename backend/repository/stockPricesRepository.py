@@ -1,10 +1,10 @@
-from database.database import Database
-from utils.errors import DatabaseError
-from repository.repositoryAbs import RepositoryAbstract
+from backend.database.database import Database
+from backend.utils.errors import DatabaseError
+from backend.repository.repositoryAbs import RepositoryAbstract
 
 class StockPricesRepository(RepositoryAbstract):
     table_name = 'stock_prices'
-
+    key = 'price_id'
     @classmethod
     async def insert(cls, stock_price, transaction=None):
         pool = transaction or Database.get_pool()
@@ -25,6 +25,7 @@ class StockPricesRepository(RepositoryAbstract):
             result = await pool.fetchrow(query, *values)
             return result['price_id']
         except Exception as error:
+            print('Error adding stock price:', error)
             raise DatabaseError(f"股票資料庫新增錯誤: {str(error)}")
 
     @classmethod
