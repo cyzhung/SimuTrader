@@ -19,4 +19,5 @@ dist/
 build/
 
 simutrader_database_backup.sql
+backend/minikube-linux-and64
 
