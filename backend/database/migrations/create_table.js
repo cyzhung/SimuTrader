@@ -1,6 +1,16 @@
-const pool = require('../utils/DatabaseConnection'); // 引入資料庫連線
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
+dotenv.config();
 
-const initDatabase = async () => {
+const pool = new Pool({
+                user: process.env.DB_USER,
+                host: process.env.DB_HOST,
+                database: process.env.DB_NAME,
+                password: process.env.DB_PASSWORD,
+                port: process.env.DB_PORT,
+            })
+
+const create_table = async () => {
   console.log('Testing database connection...');
     try {
       const result = await pool.query('SELECT NOW()');
@@ -118,7 +128,7 @@ const initDatabase = async () => {
   }
 };
 
-module.exports = initDatabase;
+module.exports = create_table;
 
 // 執行初始化
-initDatabase();
+create_table();

@@ -1,6 +1,6 @@
 const { LimitOrder } = require('./LimitOrder');
 const { MarketOrder } = require('./MarketOrder');
-const { StockRepository } = require('../../repository/StockRepository');
+const  StockRepository  = require('../../repository/StockRepository');
 class OrderFactory {
     static async createOrder(orderInfo) {
         if(!orderInfo.stock_id){

@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
+const redisClient = require('../utils/redisClient'); // 引入 Redis 客戶端
 const StockRepository = require('../repository/StockRepository');
+
 const {authMiddleware} = require('../middlewares/AuthMiddleware');
 
 router.get('/', authMiddleware, async (req, res)=>{
@@ -48,5 +50,31 @@ router.post('/update', authMiddleware, async (req, res) =>{
       });
 
 });
+
+
+
+router.get('/popular', authMiddleware, async (req, res) => {
+    try {
+        // 取 Redis 中的前 10 名熱門股票，包含分數
+        const result = await redisClient.zRevRange('hot_stocks', 0, 9, { WITHSCORES: true });
+
+        const stocks = [];
+        for (let i = 0; i < result.length; i += 2) {
+            stocks.push({
+                symbol: result[i],
+                score: parseInt(result[i + 1]),
+            });
+        }
+
+        res.status(200).json({
+            message: '熱門股票排行榜',
+            stocks: stocks,
+        });
+    } catch (error) {
+        console.error('Error fetching popular stocks:', error.message);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+});
+
 
 module.exports = router;

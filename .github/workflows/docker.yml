@@ -1,0 +1,39 @@
+name: Build and Push Node Backend
+
+on:
+  push:
+    branches: [ "main" ]  # 每次 push 到 main 分支就觸發
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build Docker image
+      run: docker build -t node-backend:latest .
+
+    # 如果要推送到 DockerHub，需要以下區塊
+    # - name: Login to DockerHub
+    #   uses: docker/login-action@v2
+    #   with:
+    #     username: ${{ secrets.DOCKER_USERNAME }}
+    #     password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # - name: Push image to DockerHub
+    #   run: docker push yourdockerhub/node-backend:latest

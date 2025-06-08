@@ -1,6 +1,21 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
+const create_table = require('./migrations/create_table.js')
 dotenv.config();
+
+async function waitForPostgres(pool, retries = 10, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await pool.query('SELECT 1');
+      console.log(' PostgreSQL is ready');
+      return;
+    } catch (err) {
+      console.log(`⏳ Waiting for PostgreSQL... (${i + 1}/${retries})`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error('PostgreSQL not ready after retries.');
+}
 
 
 class Database {
@@ -9,7 +24,6 @@ class Database {
         if (this.pool) {
             return;
         }
-
         try {
             this.pool = new Pool({
                 user: process.env.DB_USER,
@@ -18,8 +32,10 @@ class Database {
                 password: process.env.DB_PASSWORD,
                 port: process.env.DB_PORT,
             })
-            // 測試連接
-            await this.pool.query('SELECT NOW()');
+
+            await waitForPostgres(this.pool);
+
+            await create_table();
         } catch (error) {
             console.error('Database connection test failed:', error);
             throw error;

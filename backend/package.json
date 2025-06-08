@@ -20,7 +20,8 @@
     "express": "^4.21.2",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "redis": "^5.5.6"
   },
   "devDependencies": {
     "jest": "^29.7.0",

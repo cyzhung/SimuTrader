@@ -52,7 +52,7 @@ class TransactionServices {
                 const transactionInfo = this._computeTransactionsInfo(transactions);
                 this._updateOrderState(order, transactionInfo)
             }
-
+            
             // 6. 提交事務
             await client.commit();
             return this._formatTransactionResult(order, transactionInfo, result);
@@ -218,7 +218,7 @@ class TransactionServices {
      * @private
      */
     static async _createOrder(transactionData, client) {
-        const order = OrderService.createOrder(transactionData)
+        const order = await OrderService.createOrder(transactionData)
         const order_id = await OrderRepository.insert(order,  {transaction : client});
         return { ...order, order_id:order_id };
     }

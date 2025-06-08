@@ -5,6 +5,7 @@ const OrderBookService = require('./services/OrderBook/OrderBookService');
 // 初始化應用
 async function initializeApp() {
     try {
+
         await Database.initialize();
         console.log('Database connection initialized successfully');
         // 初始化 OrderBook
