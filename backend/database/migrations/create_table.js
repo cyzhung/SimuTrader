@@ -1,16 +1,7 @@
-const { Pool } = require('pg');
+
 const dotenv = require('dotenv');
-dotenv.config();
 
-const pool = new Pool({
-                user: process.env.DB_USER,
-                host: process.env.DB_HOST,
-                database: process.env.DB_NAME,
-                password: process.env.DB_PASSWORD,
-                port: process.env.DB_PORT,
-            })
-
-const create_table = async () => {
+const init_table = async (pool) => {
   console.log('Testing database connection...');
     try {
       const result = await pool.query('SELECT NOW()');
@@ -117,18 +108,7 @@ const create_table = async () => {
     console.log('Database initialized successfully!');
   } catch (err) {
     console.error('Error initializing database:', err);
-  } finally {
-    // 確保連線池被關閉
-    try {
-      await pool.end();
-      console.log('Database connection pool closed.');
-    } catch (err) {
-      console.error('Error closing pool:', err);
-    }
   }
 };
 
-module.exports = create_table;
-
-// 執行初始化
-create_table();
+module.exports = init_table;

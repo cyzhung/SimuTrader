@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-const create_table = require('./migrations/create_table.js')
+const init_table = require('./migrations/create_table.js')
 dotenv.config();
 
 async function waitForPostgres(pool, retries = 10, delay = 1000) {
@@ -34,8 +34,7 @@ class Database {
             })
 
             await waitForPostgres(this.pool);
-
-            await create_table();
+            await init_table(this.pool);
         } catch (error) {
             console.error('Database connection test failed:', error);
             throw error;

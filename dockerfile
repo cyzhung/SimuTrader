@@ -20,6 +20,6 @@ COPY . .
 EXPOSE 3000
 
 # 啟動指令（請替換成你實際的啟動方式）
-CMD [ "node", "." ]
+CMD [ "node", "backend/" ]
 
 

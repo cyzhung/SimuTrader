@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
-const redisClient = require('../utils/redisClient'); // 引入 Redis 客戶端
+
 const StockRepository = require('../repository/StockRepository');
 
 const {authMiddleware} = require('../middlewares/AuthMiddleware');

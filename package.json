@@ -1,17 +1,18 @@
 {
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "redis": "^5.5.6"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "supertest": "^7.0.0"
   },
-    "scripts": {
-      "test": "jest --config ./tests/jest.config.js --detectOpenHandles",
-      "test:watch": "jest --config ./tests/jest.config.js --watch",
-      "test:coverage": "jest --config ./tests/jest.config.js --coverage",
-      "test:integration": "jest --config ./tests/jest.config.js tests/integration",
-      "test:unit": "jest --config ./tests/jest.config.js tests/unit"
-    }
+  "scripts": {
+    "test": "jest --config ./tests/jest.config.js --detectOpenHandles",
+    "test:watch": "jest --config ./tests/jest.config.js --watch",
+    "test:coverage": "jest --config ./tests/jest.config.js --coverage",
+    "test:integration": "jest --config ./tests/jest.config.js tests/integration",
+    "test:unit": "jest --config ./tests/jest.config.js tests/unit"
+  }
 }
